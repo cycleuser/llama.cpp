@@ -86,7 +86,9 @@ static fastdiv_vals init_fastdiv_values(uint64_t d_64) {
 
 enum GPU_FAMILY {
     ADRENO,
+    AMD,
     INTEL,
+    NVIDIA,
     UNKNOWN,
 };
 
@@ -397,6 +399,7 @@ struct ggml_backend_opencl_context {
     ggml_cl_compiler_version adreno_cl_compiler_version;
 
     int adreno_wave_size;
+    int amd_wavefront_size;
 
     cl_bool non_uniform_workgroups;
     size_t  image_max_buffer_size;
