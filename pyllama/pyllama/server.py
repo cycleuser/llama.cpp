@@ -43,6 +43,37 @@ class ServerConfig:
     gpu_backend: str = "auto"
 
 
+def _find_binary() -> Path:
+    """Find llama-server binary, checking multiple locations."""
+    binary_name = "llama-server.exe" if sys.platform == "win32" else "llama-server"
+    
+    locations = [
+        Path(__file__).parent / "bin" / ("windows" if sys.platform == "win32" else ("darwin" if sys.platform == "darwin" else "linux")) / binary_name,
+        Path.home() / ".cache" / "pyllama" / "binaries" / ("windows" if sys.platform == "win32" else ("darwin" if sys.platform == "darwin" else "linux")) / binary_name,
+    ]
+    
+    for loc in locations:
+        if loc.exists():
+            return loc
+    
+    try:
+        from pyllama.binaries import get_binary_manager
+        manager = get_binary_manager()
+        if not manager.is_downloaded():
+            console.print("[blue]Downloading llama.cpp binaries...[/blue]")
+            manager.download_binaries()
+        return manager.get_binary_path("llama-server")
+    except Exception as e:
+        pass
+    
+    raise FileNotFoundError(
+        f"llama-server binary not found.\n"
+        f"Run 'pyllama download-binaries' to download pre-built binaries,\n"
+        f"or use 'pyllama build' to compile from source.\n"
+        f"Searched locations:\n" + "\n".join(f"  - {loc}" for loc in locations)
+    )
+
+
 class LlamaServer:
     """
     Manage llama.cpp server instance.
@@ -84,21 +115,7 @@ class LlamaServer:
     @staticmethod
     def get_binary_path() -> Path:
         """Get the path to the llama-server binary for current platform."""
-        package_dir = Path(__file__).parent / "bin"
-        
-        if sys.platform == "win32":
-            binary = package_dir / "windows" / "llama-server.exe"
-        elif sys.platform == "darwin":
-            binary = package_dir / "darwin" / "llama-server"
-        else:
-            binary = package_dir / "linux" / "llama-server"
-            
-        if not binary.exists():
-            raise FileNotFoundError(
-                f"Binary not found: {binary}\n"
-                f"Please run 'pyllama build' to compile binaries."
-            )
-        return binary
+        return _find_binary()
     
     @staticmethod
     def detect_gpus() -> List[GPUInfo]:
