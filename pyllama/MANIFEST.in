@@ -1,1 +1,5 @@
 recursive-include pyllama/bin *
+recursive-include pyllama *.py
+include pyproject.toml
+include README.md
+include LICENSE
