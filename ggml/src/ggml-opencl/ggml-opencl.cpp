@@ -86,7 +86,9 @@ static fastdiv_vals init_fastdiv_values(uint64_t d_64) {
 
 enum GPU_FAMILY {
     ADRENO,
+    AMD,
     INTEL,
+    NVIDIA,
     UNKNOWN,
 };
 
@@ -397,6 +399,7 @@ struct ggml_backend_opencl_context {
     ggml_cl_compiler_version adreno_cl_compiler_version;
 
     int adreno_wave_size;
+    int amd_wavefront_size;
 
     cl_bool non_uniform_workgroups;
     size_t  image_max_buffer_size;
@@ -2882,12 +2885,29 @@ static ggml_backend_opencl_context * ggml_cl2_init(ggml_backend_dev_t dev) {
 
         // Use wave size of 64 for all Adreno GPUs.
         backend_ctx->adreno_wave_size = 64;
+    } else if (strstr(dev_ctx->device_name.c_str(), "AMD") ||
+               strstr(dev_ctx->device_name.c_str(), "gfx") ||
+               strstr(dev_ctx->device_name.c_str(), "Radeon")) {
+        backend_ctx->gpu_family = GPU_FAMILY::AMD;
+        // AMD wavefront size: 64 for GCN (gfx8, gfx9, gfx10), 32 for RDNA3 (gfx11)
+        if (strstr(dev_ctx->device_name.c_str(), "gfx11") != nullptr) {
+            backend_ctx->amd_wavefront_size = 32;
+        } else {
+            backend_ctx->amd_wavefront_size = 64;
+        }
+        GGML_LOG_INFO("ggml_opencl: AMD GPU detected: %s (wavefront: %d)\n",
+            dev_ctx->device_name.c_str(), backend_ctx->amd_wavefront_size);
+    } else if (strstr(dev_ctx->device_name.c_str(), "NVIDIA") ||
+               strstr(dev_ctx->device_name.c_str(), "GeForce") ||
+               strstr(dev_ctx->device_name.c_str(), "RTX") ||
+               strstr(dev_ctx->device_name.c_str(), "GTX")) {
+        backend_ctx->gpu_family = GPU_FAMILY::NVIDIA;
+        GGML_LOG_INFO("ggml_opencl: NVIDIA GPU detected: %s\n", dev_ctx->device_name.c_str());
     } else if (strstr(dev_ctx->device_name.c_str(), "Intel")) {
         backend_ctx->gpu_family = GPU_FAMILY::INTEL;
     } else {
-        GGML_LOG_ERROR("Unsupported GPU: %s\n", dev_ctx->device_name.c_str());
+        GGML_LOG_WARN("ggml_opencl: Unknown GPU: %s - attempting to use anyway\n", dev_ctx->device_name.c_str());
         backend_ctx->gpu_family = GPU_FAMILY::UNKNOWN;
-        return nullptr;
     }
 
 #ifdef GGML_OPENCL_USE_ADRENO_KERNELS
