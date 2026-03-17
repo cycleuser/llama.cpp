@@ -72,7 +72,7 @@ class BenchmarkRunner:
     Run benchmarks on GGUF models with detailed performance metrics.
     
     Usage:
-        from pyllama.benchmark import BenchmarkRunner
+        from moxing.benchmark import BenchmarkRunner
         
         runner = BenchmarkRunner()
         result = runner.run("model.gguf", prompt="Hello", n_tokens=100)
@@ -165,8 +165,8 @@ class BenchmarkRunner:
         **kwargs
     ) -> BenchmarkResult:
         """Run a single benchmark iteration."""
-        from pyllama.server import LlamaServer
-        from pyllama.client import Client
+        from moxing.server import LlamaServer
+        from moxing.client import Client
         
         model_size_gb = model_path.stat().st_size / (1024 ** 3)
         

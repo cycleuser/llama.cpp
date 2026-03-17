@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Automatic system detection and installation script for pyllama-server.
+Automatic system detection and installation script for moxing-server.
 
 This script detects:
 - Operating system and version
@@ -432,14 +432,14 @@ class InstallationGuide:
     
     def _windows_commands(self) -> List[str]:
         commands = [
-            "# Install pyllama-server",
-            "pip install pyllama-server",
+            "# Install moxing-server",
+            "pip install moxing-server",
             "",
             "# Download pre-built binaries",
-            f"pyllama download-binaries --backend {self.info.recommended_backend.value}",
+            f"moxing download-binaries --backend {self.info.recommended_backend.value}",
             "",
             "# Verify installation",
-            "pyllama devices",
+            "moxing devices",
         ]
         
         # Add GPU-specific setup
@@ -465,8 +465,8 @@ class InstallationGuide:
                 "sudo apt install -y python3 python3-pip python3-venv vulkan-tools",
                 "",
                 "# Create virtual environment (recommended)",
-                "python3 -m venv ~/pyllama-env",
-                "source ~/pyllama-env/bin/activate",
+                "python3 -m venv ~/moxing-env",
+                "source ~/moxing-env/bin/activate",
                 "",
             ])
         elif distro in ("fedora", "rhel"):
@@ -486,14 +486,14 @@ class InstallationGuide:
             ])
         
         commands.extend([
-            "# Install pyllama-server",
-            "pip install pyllama-server",
+            "# Install moxing-server",
+            "pip install moxing-server",
             "",
             "# Download pre-built binaries",
-            f"pyllama download-binaries --backend {self.info.recommended_backend.value}",
+            f"moxing download-binaries --backend {self.info.recommended_backend.value}",
             "",
             "# Verify installation",
-            "pyllama devices",
+            "moxing devices",
         ])
         
         return commands
@@ -507,23 +507,23 @@ class InstallationGuide:
             "brew install python@3.11",
             "",
             "# Create virtual environment",
-            "python3.11 -m venv ~/pyllama-env",
-            "source ~/pyllama-env/bin/activate",
+            "python3.11 -m venv ~/moxing-env",
+            "source ~/moxing-env/bin/activate",
             "",
-            "# Install pyllama-server",
-            "pip install pyllama-server",
+            "# Install moxing-server",
+            "pip install moxing-server",
             "",
         ]
         
         if self.info.recommended_backend == BackendType.METAL:
             commands.append("# Metal is automatically used on Apple Silicon")
         else:
-            commands.append(f"pyllama download-binaries --backend {self.info.recommended_backend.value}")
+            commands.append(f"moxing download-binaries --backend {self.info.recommended_backend.value}")
         
         commands.extend([
             "",
             "# Verify installation",
-            "pyllama devices",
+            "moxing devices",
         ])
         
         return commands
@@ -649,9 +649,9 @@ def print_installation_guide(guide: InstallationGuide):
     
     print()
     print(f"{Colors.BOLD}After installation, run:{Colors.RESET}")
-    print(f"  {Colors.GREEN}pyllama devices{Colors.RESET}   # Verify GPU detection")
-    print(f"  {Colors.GREEN}pyllama models{Colors.RESET}    # List available models")
-    print(f"  {Colors.GREEN}pyllama run llama-3.2-3b -p 'Hello'{Colors.RESET}  # Quick test")
+    print(f"  {Colors.GREEN}moxing devices{Colors.RESET}   # Verify GPU detection")
+    print(f"  {Colors.GREEN}moxing models{Colors.RESET}    # List available models")
+    print(f"  {Colors.GREEN}moxing run llama-3.2-3b -p 'Hello'{Colors.RESET}  # Quick test")
     print()
 
 
@@ -663,38 +663,38 @@ def auto_install():
     detector.detect_gpus()
     backend = detector.recommend_backend()
     
-    print_info(f"Installing pyllama-server with {backend.value} backend...")
+    print_info(f"Installing moxing-server with {backend.value} backend...")
     print()
     
     # Install package
-    print(f"{Colors.BOLD}Installing pyllama-server...{Colors.RESET}")
+    print(f"{Colors.BOLD}Installing moxing-server...{Colors.RESET}")
     result = subprocess.run(
-        [sys.executable, "-m", "pip", "install", "pyllama-server"],
+        [sys.executable, "-m", "pip", "install", "moxing-server"],
         text=True
     )
     
     if result.returncode != 0:
-        print_error("Failed to install pyllama-server")
+        print_error("Failed to install moxing-server")
         return False
     
-    print_success("pyllama-server installed")
+    print_success("moxing-server installed")
     
     # Download binaries
     print(f"\n{Colors.BOLD}Downloading pre-built binaries...{Colors.RESET}")
     result = subprocess.run(
-        [sys.executable, "-m", "pyllama.cli", "download-binaries", "--backend", backend.value],
+        [sys.executable, "-m", "moxing.cli", "download-binaries", "--backend", backend.value],
         text=True
     )
     
     if result.returncode != 0:
-        print_warning("Failed to download binaries. Try manually: pyllama download-binaries")
+        print_warning("Failed to download binaries. Try manually: moxing download-binaries")
     else:
         print_success("Binaries downloaded")
     
     # Verify
     print(f"\n{Colors.BOLD}Verifying installation...{Colors.RESET}")
     result = subprocess.run(
-        [sys.executable, "-m", "pyllama.cli", "devices"],
+        [sys.executable, "-m", "moxing.cli", "devices"],
         text=True
     )
     
@@ -708,12 +708,12 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="pyllama-server system detection and installation"
+        description="moxing-server system detection and installation"
     )
     parser.add_argument(
         "--install", "-i",
         action="store_true",
-        help="Automatically install pyllama-server"
+        help="Automatically install moxing-server"
     )
     parser.add_argument(
         "--json",

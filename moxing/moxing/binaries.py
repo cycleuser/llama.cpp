@@ -1,5 +1,5 @@
 """
-Binary management for pyllama.
+Binary management for pyllm.
 Downloads pre-built binaries from GitHub releases on first use.
 """
 
@@ -24,7 +24,7 @@ console = Console()
 
 
 LLAMA_CPP_REPO = "ggml-org/llama.cpp"
-BINARY_CACHE_DIR = Path.home() / ".cache" / "pyllama" / "binaries"
+BINARY_CACHE_DIR = Path.home() / ".cache" / "pyllm" / "binaries"
 
 ESSENTIAL_BINARIES = [
     "llama-server",
@@ -48,7 +48,7 @@ class BinaryManager:
     Manage llama.cpp binaries.
     
     Downloads pre-built binaries from GitHub releases on first use.
-    Caches them in ~/.cache/pyllama/binaries/
+    Caches them in ~/.cache/pyllm/binaries/
     """
     
     def __init__(self, cache_dir: Optional[Path] = None):
@@ -90,7 +90,7 @@ class BinaryManager:
         if not binary_path.exists():
             raise FileNotFoundError(
                 f"Binary not found: {binary_path}\n"
-                f"Please run 'pyllama download-binaries' to download binaries."
+                f"Please run 'pyllm download-binaries' to download binaries."
             )
         
         return binary_path
@@ -123,7 +123,7 @@ class BinaryManager:
         url = f"https://api.github.com/repos/{LLAMA_CPP_REPO}/releases/latest"
         req = Request(url, headers={
             "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "pyllama-server"
+            "User-Agent": "pyllm-server"
         })
         
         with urlopen(req, timeout=30) as response:

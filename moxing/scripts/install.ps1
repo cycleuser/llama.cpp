@@ -1,7 +1,7 @@
-# pyllama-server Installation Script for Windows
+# moxing-server Installation Script for Windows
 #
 # Usage:
-#   Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ggml-org/llama.cpp/master/pyllama/scripts/install.ps1" | Invoke-Expression
+#   Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ggml-org/llama.cpp/master/moxing/scripts/install.ps1" | Invoke-Expression
 #
 # Or:
 #   .\install.ps1 -Backend cuda
@@ -31,7 +31,7 @@ function Write-Warn { Write-ColorOutput Yellow $args }
 function Write-Err { Write-ColorOutput Red $args }
 
 if ($Help) {
-    Write-Host "pyllama-server Installation Script for Windows"
+    Write-Host "moxing-server Installation Script for Windows"
     Write-Host ""
     Write-Host "Usage: .\install.ps1 [OPTIONS]"
     Write-Host ""
@@ -43,7 +43,7 @@ if ($Help) {
 }
 
 Write-Info "============================================================"
-Write-Info "  pyllama-server Installation Script"
+Write-Info "  moxing-server Installation Script"
 Write-Info "============================================================"
 Write-Host ""
 
@@ -188,7 +188,7 @@ function Setup-Venv {
     param($pythonCmd)
     
     if (-not $NoVenv) {
-        $venvDir = "$env:USERPROFILE\pyllama-env"
+        $venvDir = "$env:USERPROFILE\moxing-env"
         
         if (-not (Test-Path $venvDir)) {
             Write-Host ""
@@ -210,17 +210,17 @@ function Setup-Venv {
     return $pythonCmd
 }
 
-# Install pyllama-server
+# Install moxing-server
 function Install-Pyllama {
     param($pythonCmd)
     
     Write-Host ""
-    Write-Info "Installing pyllama-server..."
+    Write-Info "Installing moxing-server..."
     
     Invoke-Expression "$pythonCmd -m pip install --upgrade pip --quiet"
-    Invoke-Expression "$pythonCmd -m pip install pyllama-server --quiet"
+    Invoke-Expression "$pythonCmd -m pip install moxing-server --quiet"
     
-    Write-Success "pyllama-server installed"
+    Write-Success "moxing-server installed"
 }
 
 # Download binaries
@@ -231,11 +231,11 @@ function Download-Binaries {
     Write-Info "Downloading pre-built binaries ($Backend backend)..."
     
     try {
-        Invoke-Expression "$pythonCmd -m pyllama.cli download-binaries --backend $Backend"
+        Invoke-Expression "$pythonCmd -m moxing.cli download-binaries --backend $Backend"
         Write-Success "Binaries downloaded"
     } catch {
         Write-Warn "Binary download failed. You may need to download manually."
-        Write-Host "  Run: pyllama download-binaries --backend $Backend"
+        Write-Host "  Run: moxing download-binaries --backend $Backend"
     }
 }
 
@@ -247,7 +247,7 @@ function Verify-Installation {
     Write-Info "Verifying installation..."
     Write-Host ""
     
-    Invoke-Expression "$pythonCmd -m pyllama.cli devices"
+    Invoke-Expression "$pythonCmd -m moxing.cli devices"
     
     Write-Host ""
     Write-Success "============================================================"
@@ -256,17 +256,17 @@ function Verify-Installation {
     Write-Host ""
     
     if (-not $NoVenv) {
-        Write-Host "To use pyllama, activate the virtual environment:"
-        Write-Info "  $env:USERPROFILE\pyllama-env\Scripts\Activate.ps1"
+        Write-Host "To use moxing, activate the virtual environment:"
+        Write-Info "  $env:USERPROFILE\moxing-env\Scripts\Activate.ps1"
         Write-Host ""
     }
     
     Write-Host "Quick start commands:"
-    Write-Info "  pyllama devices"        ; Write-Host "        # List GPUs"
-    Write-Info "  pyllama models"         ; Write-Host "         # List popular models"
-    Write-Info "  pyllama download llama-3.2-3b"  ; Write-Host "  # Download a model"
-    Write-Info "  pyllama run llama-3.2-3b"       ; Write-Host "       # Run inference"
-    Write-Info "  pyllama serve llama-3.2-3b"     ; Write-Host "     # Start API server"
+    Write-Info "  moxing devices"        ; Write-Host "        # List GPUs"
+    Write-Info "  moxing models"         ; Write-Host "         # List popular models"
+    Write-Info "  moxing download llama-3.2-3b"  ; Write-Host "  # Download a model"
+    Write-Info "  moxing run llama-3.2-3b"       ; Write-Host "       # Run inference"
+    Write-Info "  moxing serve llama-3.2-3b"     ; Write-Host "     # Start API server"
     Write-Host ""
 }
 

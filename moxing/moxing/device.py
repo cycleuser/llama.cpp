@@ -77,7 +77,7 @@ class DeviceDetector:
     @property
     def binary_path(self) -> Path:
         if self._binary_path is None:
-            from pyllama.server import LlamaServer
+            from moxing.server import LlamaServer
             self._binary_path = LlamaServer.get_binary_path()
         return self._binary_path
     

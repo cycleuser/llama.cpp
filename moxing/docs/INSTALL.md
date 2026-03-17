@@ -1,6 +1,6 @@
 # Installation Guide
 
-Complete installation guide for pyllama-server across all platforms, operating systems, and hardware configurations.
+Complete installation guide for pyllm across all platforms, operating systems, and hardware configurations.
 
 ## Table of Contents
 
@@ -22,14 +22,14 @@ Complete installation guide for pyllama-server across all platforms, operating s
 ## Quick Start
 
 ```bash
-# Install pyllama-server
-pip install pyllama-server
+# Install pyllm
+pip install pyllm
 
 # Download pre-built binaries
-pyllama download-binaries
+pyllm download-binaries
 
 # Verify installation
-pyllama devices
+pyllm devices
 ```
 
 ---
@@ -66,14 +66,14 @@ pyllama devices
 # 1. Install Python 3.11+ from python.org or Microsoft Store
 winget install Python.Python.3.12
 
-# 2. Install pyllama-server
-pip install pyllama-server
+# 2. Install pyllm
+pip install pyllm
 
 # 3. Download binaries (auto-selects Vulkan backend)
-pyllama download-binaries
+pyllm download-binaries
 
 # 4. Verify GPU detection
-pyllama devices
+pyllm devices
 ```
 
 #### Windows Hardware Detection
@@ -89,7 +89,7 @@ pyllama devices
 
 ```powershell
 # Check Vulkan support
-pyllama devices
+pyllm devices
 
 # If no Vulkan devices found, install Vulkan Runtime
 # Download from: https://vulkan.lunarg.com/sdk/home
@@ -105,7 +105,7 @@ pyllama devices
 nvidia-smi
 
 # 3. Download CUDA binaries
-pyllama download-binaries --backend cuda
+pyllm download-binaries --backend cuda
 ```
 
 #### Windows Troubleshooting
@@ -116,10 +116,10 @@ pyllama download-binaries --backend cuda
 winget install Microsoft.VCRedist.2015+.x64
 
 # 2. Check DLL dependencies
-pyllama download-binaries --force
+pyllm download-binaries --force
 
 # 3. Run with verbose output
-pyllama run model.gguf -v
+pyllm run model.gguf -v
 ```
 
 ---
@@ -134,20 +134,20 @@ sudo apt update
 sudo apt install -y python3 python3-pip python3-venv
 
 # 2. Create virtual environment (recommended)
-python3 -m venv ~/pyllama-env
-source ~/pyllama-env/bin/activate
+python3 -m venv ~/pyllm-env
+source ~/pyllm-env/bin/activate
 
-# 3. Install pyllama-server
-pip install pyllama-server
+# 3. Install pyllm
+pip install pyllm
 
 # 4. Install Vulkan support (recommended for AMD/Intel)
 sudo apt install -y vulkan-tools libvulkan1
 
 # 5. Download binaries
-pyllama download-binaries
+pyllm download-binaries
 
 # 6. Verify GPU detection
-pyllama devices
+pyllm devices
 ```
 
 #### Fedora/RHEL
@@ -159,9 +159,9 @@ sudo dnf install -y python3 python3-pip
 # 2. Install Vulkan
 sudo dnf install -y vulkan-loader vulkan-tools
 
-# 3. Install and setup pyllama
-pip install pyllama-server
-pyllama download-binaries
+# 3. Install and setup pyllm
+pip install pyllm
+pyllm download-binaries
 ```
 
 #### Arch Linux
@@ -170,9 +170,9 @@ pyllama download-binaries
 # 1. Install dependencies
 sudo pacman -S python python-pip vulkan-tools vulkan-icd-loader
 
-# 2. Install pyllama
-pip install pyllama-server
-pyllama download-binaries
+# 2. Install pyllm
+pip install pyllm
+pyllm download-binaries
 ```
 
 #### Linux GPU Support Matrix
@@ -199,24 +199,24 @@ pyllama download-binaries
 brew install python@3.11
 
 # 3. Create virtual environment
-python3.11 -m venv ~/pyllama-env
-source ~/pyllama-env/bin/activate
+python3.11 -m venv ~/pyllm-env
+source ~/pyllm-env/bin/activate
 
-# 4. Install pyllama-server
-pip install pyllama-server
+# 4. Install pyllm
+pip install pyllm
 
 # 5. Download Metal binaries
-pyllama download-binaries --backend metal
+pyllm download-binaries --backend metal
 
 # 6. Verify Metal detection
-pyllama devices
+pyllm devices
 ```
 
 #### Apple Silicon (M1/M2/M3/M4)
 
 ```bash
 # Metal is automatically detected and used
-pyllama devices
+pyllm devices
 
 # Expected output:
 # 0 | Apple M2 | metal | 8.0GB
@@ -226,7 +226,7 @@ pyllama devices
 
 ```bash
 # Uses CPU backend on Intel Macs
-pyllama download-binaries --backend cpu
+pyllm download-binaries --backend cpu
 ```
 
 ---
@@ -241,7 +241,7 @@ pyllama download-binaries --backend cpu
 
 1. Install GPU drivers (AMD Adrenalin, Intel Arc, or NVIDIA GeForce)
 2. Vulkan Runtime is usually included with drivers
-3. Verify: `pyllama devices`
+3. Verify: `pyllm devices`
 
 #### Linux Vulkan Setup
 
@@ -262,7 +262,7 @@ sudo apt install -y intel-media-va-driver-non-free
 #### Verify Vulkan Detection
 
 ```bash
-pyllama devices
+pyllm devices
 
 # Expected output for AMD:
 # 0 | AMD Radeon RX 7900 XTX | vulkan | 24.0GB
@@ -295,8 +295,8 @@ pyllama devices
 # 3. Verify installation
 nvidia-smi
 
-# 4. Install pyllama with CUDA binaries
-pyllama download-binaries --backend cuda
+# 4. Install pyllm with CUDA binaries
+pyllm download-binaries --backend cuda
 ```
 
 #### Linux CUDA Setup
@@ -321,7 +321,7 @@ source ~/.bashrc
 nvidia-smi
 
 # 5. Download CUDA binaries
-pyllama download-binaries --backend cuda
+pyllm download-binaries --backend cuda
 ```
 
 #### CUDA GPU Memory Requirements
@@ -369,7 +369,7 @@ sudo reboot
 rocminfo
 
 # 5. Download ROCm binaries
-pyllama download-binaries --backend rocm
+pyllm download-binaries --backend rocm
 ```
 
 #### ROCm Environment Variables
@@ -396,10 +396,10 @@ export HSA_OVERRIDE_GFX_VERSION=11.0.0  # For RDNA3
 
 ```bash
 # Metal is automatically detected on Apple Silicon
-pyllama devices
+pyllm devices
 
 # No additional setup needed
-pyllama download-binaries  # Auto-selects Metal
+pyllm download-binaries  # Auto-selects Metal
 ```
 
 #### Apple Silicon Memory
@@ -422,7 +422,7 @@ pyllama download-binaries  # Auto-selects Metal
 
 ```bash
 # Solution: Download binaries
-pyllama download-binaries --force
+pyllm download-binaries --force
 ```
 
 #### 2. No GPU Detected
@@ -436,14 +436,14 @@ pyllama download-binaries --force
 # Windows/Linux: vulkaninfo
 
 # Force CPU backend
-pyllama download-binaries --backend cpu
+pyllm download-binaries --backend cpu
 ```
 
 #### 3. Out of Memory (OOM)
 
 ```bash
 # Use smaller context
-pyllama run model.gguf -c 2048
+pyllm run model.gguf -c 2048
 
 # Use smaller quantization
 # Q4_K_M instead of Q5_K_M or Q8_0
@@ -453,10 +453,10 @@ pyllama run model.gguf -c 2048
 
 ```bash
 # Check GPU is being used
-pyllama devices
+pyllm devices
 
 # Verify GPU offloading
-pyllama config model.gguf
+pyllm config model.gguf
 
 # Should show GPU layers > 0
 ```
@@ -482,7 +482,7 @@ Error: Permission denied
 
 **Solution**:
 ```bash
-chmod +x ~/.cache/pyllama/binaries/linux/*
+chmod +x ~/.cache/pyllm/binaries/linux/*
 ```
 
 #### macOS: "App is damaged"
@@ -493,23 +493,23 @@ Error: "llama-server" is damaged and can't be opened
 
 **Solution**:
 ```bash
-xattr -d com.apple.quarantine ~/.cache/pyllama/binaries/darwin/*
+xattr -d com.apple.quarantine ~/.cache/pyllm/binaries/darwin/*
 ```
 
 ### Diagnostic Commands
 
 ```bash
 # Show all detected devices
-pyllama devices
+pyllm devices
 
 # Show binary location
-pyllama --help
+pyllm --help
 
 # Test with small model
-pyllama run tinyllama.q4_k_m.gguf -p "Hello"
+pyllm run tinyllama.q4_k_m.gguf -p "Hello"
 
 # Show system info
-pyllama config model.gguf
+pyllm config model.gguf
 ```
 
 ---
@@ -520,13 +520,13 @@ For air-gapped systems:
 
 ```bash
 # On internet-connected machine:
-pip download pyllama-server -d ./packages
-pyllama download-binaries
-cp -r ~/.cache/pyllama ./pyllama-cache
+pip download pyllm -d ./packages
+pyllm download-binaries
+cp -r ~/.cache/pyllm ./pyllm-cache
 
 # Transfer to offline machine
-pip install --no-index --find-links=./packages pyllama-server
-cp -r ./pyllama-cache ~/.cache/pyllama
+pip install --no-index --find-links=./packages pyllm
+cp -r ./pyllm-cache ~/.cache/pyllm
 ```
 
 ---
@@ -535,7 +535,7 @@ cp -r ./pyllama-cache ~/.cache/pyllama
 
 After installation:
 
-1. **Download a model**: `pyllama download llama-3.2-3b`
-2. **Run inference**: `pyllama run llama-3.2-3b -p "Hello"`
-3. **Start server**: `pyllama serve llama-3.2-3b`
+1. **Download a model**: `pyllm download llama-3.2-3b`
+2. **Run inference**: `pyllm run llama-3.2-3b -p "Hello"`
+3. **Start server**: `pyllm serve llama-3.2-3b`
 4. **Use with OpenAI SDK**: See [API Documentation](API.md)

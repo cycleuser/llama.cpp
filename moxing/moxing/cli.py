@@ -1,5 +1,5 @@
 """
-CLI interface for pyllama
+CLI interface for pyllm
 """
 
 import os
@@ -17,7 +17,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt, IntPrompt
 
 console = Console()
-app = typer.Typer(name="pyllama", help="Python wrapper for llama.cpp server")
+app = typer.Typer(name="pyllm", help="Python wrapper for llama.cpp server")
 
 
 @app.command()
@@ -32,7 +32,7 @@ def serve(
     verbose: bool = typer.Option(False, "-v", "--verbose", help="Verbose output"),
 ):
     """Start the llama.cpp server with automatic configuration."""
-    from pyllama.runner import AutoRunner
+    from moxing.runner import AutoRunner
     
     runner = AutoRunner(auto_detect_device=auto)
     
@@ -50,7 +50,7 @@ def serve(
             f"[green]Server running at:[/green] http://{host}:{port}\n"
             f"[blue]OpenAI API:[/blue] http://{host}:{port}/v1\n"
             f"[yellow]Press Ctrl+C to stop[/yellow]",
-            title="pyllama server"
+            title="pyllm server"
         ))
         
         server.start(wait=False)
@@ -77,7 +77,7 @@ def run(
     chat: bool = typer.Option(True, "--chat/--completion", help="Chat or completion mode"),
 ):
     """Run inference with a model (auto-downloads if needed)."""
-    from pyllama.runner import AutoRunner
+    from moxing.runner import AutoRunner
     
     runner = AutoRunner()
     
@@ -105,8 +105,8 @@ def chat_cmd(
     source: str = typer.Option("auto", "-s", "--source", help="Model source"),
 ):
     """Interactive chat with a model."""
-    from pyllama.runner import AutoRunner
-    from pyllama.client import Client
+    from moxing.runner import AutoRunner
+    from moxing.client import Client
     
     runner = AutoRunner()
     
@@ -155,7 +155,7 @@ def download(
     list_files: bool = typer.Option(False, "-l", "--list", help="List available files"),
 ):
     """Download a model from HuggingFace or ModelScope."""
-    from pyllama.models import ModelDownloader, ModelRegistry
+    from moxing.models import ModelDownloader, ModelRegistry
     
     downloader = ModelDownloader(output)
     
@@ -200,8 +200,8 @@ def models(
     search: Optional[str] = typer.Option(None, "--search", help="Search for models"),
 ):
     """List available models."""
-    from pyllama.models import ModelDownloader, ModelRegistry
-    from pyllama.runner import AutoRunner
+    from moxing.models import ModelDownloader, ModelRegistry
+    from moxing.runner import AutoRunner
     
     if local:
         runner = AutoRunner()
@@ -257,7 +257,7 @@ def models(
 @app.command()
 def devices():
     """List available GPU devices and their capabilities."""
-    from pyllama.device import DeviceDetector
+    from moxing.device import DeviceDetector
     
     detector = DeviceDetector()
     detector.detect()
@@ -270,7 +270,7 @@ def config(
     ctx_size: int = typer.Option(4096, "-c", "--ctx-size", help="Desired context size"),
 ):
     """Show optimal configuration for a model."""
-    from pyllama.runner import AutoRunner
+    from moxing.runner import AutoRunner
     
     if not Path(model).exists():
         console.print(f"[red]Model not found: {model}[/red]")
@@ -336,7 +336,7 @@ def download_binaries(
     force: bool = typer.Option(False, "-f", "--force", help="Force re-download"),
 ):
     """Download pre-built llama.cpp binaries."""
-    from pyllama.binaries import get_binary_manager
+    from moxing.binaries import get_binary_manager
     
     manager = get_binary_manager()
     
@@ -363,13 +363,13 @@ def clear_cache(
 ):
     """Clear model and/or binary cache."""
     if binaries or model is None:
-        from pyllama.binaries import get_binary_manager
+        from moxing.binaries import get_binary_manager
         manager = get_binary_manager()
         manager.clear_cache()
         console.print("[green]Binary cache cleared[/green]")
     
     if model or not binaries:
-        from pyllama.models import ModelDownloader
+        from moxing.models import ModelDownloader
         downloader = ModelDownloader()
         downloader.clear_cache(model)
         console.print("[green]Model cache cleared[/green]")
@@ -389,7 +389,7 @@ def diagnose(
     if not script_path.exists():
         console.print("[yellow]Running built-in diagnostics...[/yellow]")
         
-        from pyllama.device import DeviceDetector, BackendType
+        from moxing.device import DeviceDetector, BackendType
         
         detector = DeviceDetector()
         devices = detector.detect()
@@ -439,7 +439,7 @@ def diagnose(
             if install:
                 console.print("\n[blue]Starting automatic installation...[/blue]")
                 import subprocess
-                subprocess.run([sys.executable, "-m", "pip", "install", "pyllama-server"])
+                subprocess.run([sys.executable, "-m", "pip", "install", "pyllm-server"])
         return
     
     cmd = [sys.executable, str(script_path)]
@@ -463,8 +463,8 @@ def benchmark(
     json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
 ):
     """Benchmark model performance (tokens/second, memory usage)."""
-    from pyllama.benchmark import BenchmarkRunner, estimate_speed
-    from pyllama.device import DeviceDetector, BackendType
+    from moxing.benchmark import BenchmarkRunner, estimate_speed
+    from moxing.device import DeviceDetector, BackendType
     import time
     
     model_path = Path(model)
@@ -543,8 +543,8 @@ def speed_test(
     ctx_size: int = typer.Option(2048, "-c", "--ctx-size", help="Context size"),
 ):
     """Quick speed test with detailed output similar to ollama."""
-    from pyllama import LlamaServer, Client
-    from pyllama.device import DeviceDetector
+    from moxing import LlamaServer, Client
+    from moxing.device import DeviceDetector
     import time
     
     model_path = Path(model)
@@ -640,8 +640,8 @@ def model_info(
     model: str = typer.Argument(..., help="Path to GGUF model file"),
 ):
     """Show detailed model information and estimated performance."""
-    from pyllama.device import DeviceDetector
-    from pyllama.benchmark import estimate_speed
+    from moxing.device import DeviceDetector
+    from moxing.benchmark import estimate_speed
     import struct
     
     model_path = Path(model)

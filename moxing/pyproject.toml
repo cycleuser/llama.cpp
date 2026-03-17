@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pyllama-server"
-version = "0.1.0"
-description = "Python wrapper for llama.cpp server - OpenAI API compatible backend with auto device detection"
+name = "moxing"
+version = "0.1.1"
+description = "Python wrapper for llama.cpp - OpenAI API compatible LLM backend with auto GPU detection"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.8"
@@ -64,7 +64,7 @@ all = [
 ]
 
 [project.scripts]
-pyllama = "pyllama.cli:app"
+moxing = "moxing.cli:app"
 
 [project.urls]
 Homepage = "https://github.com/ggml-org/llama.cpp"
@@ -74,10 +74,10 @@ Issues = "https://github.com/ggml-org/llama.cpp/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["pyllama*"]
+include = ["moxing*"]
 
 [tool.setuptools.package-data]
-pyllama = ["bin/**/*"]
+moxing = ["bin/**/*"]
 
 [tool.setuptools]
 include-package-data = true

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# pyllama-server Build and Upload Script for Linux/macOS
+# moxing-server Build and Upload Script for Linux/macOS
 #
 # Usage:
 #   ./scripts/build_and_upload.sh --all
@@ -22,7 +22,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo -e "${CYAN}============================================================${NC}"
-echo -e "${GREEN}  pyllama-server Build and Upload Script${NC}"
+echo -e "${GREEN}  moxing-server Build and Upload Script${NC}"
 echo -e "${CYAN}============================================================${NC}"
 echo ""
 
@@ -97,7 +97,7 @@ if [[ $CLEAN -eq 1 ]]; then
     echo -e "${BLUE}Cleaning build artifacts...${NC}"
     rm -rf "$PROJECT_DIR/build"
     rm -rf "$PROJECT_DIR/dist"
-    rm -rf "$PROJECT_DIR/pyllama_server.egg-info"
+    rm -rf "$PROJECT_DIR/moxing_server.egg-info"
     find "$PROJECT_DIR" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
     echo -e "${GREEN}Clean complete${NC}"
     echo ""

@@ -17,7 +17,7 @@ from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
 
 LLAMA_CPP_REPO = "ggml-org/llama.cpp"
-BINARY_DIR = Path(__file__).parent.parent / "pyllama" / "bin"
+BINARY_DIR = Path(__file__).parent.parent / "moxing" / "bin"
 
 ESSENTIAL_BINARIES = [
     "llama-server",
@@ -201,7 +201,7 @@ def main():
     parser.add_argument(
         "--output", "-o",
         default=None,
-        help="Output directory (default: pyllama/bin/<platform>)"
+        help="Output directory (default: moxing/bin/<platform>)"
     )
     
     args = parser.parse_args()

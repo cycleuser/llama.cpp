@@ -13,14 +13,14 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from pyllama.device import (
+from moxing.device import (
     DeviceDetector, Device, DeviceConfig, BackendType,
     get_device_config, estimate_model_size_gb
 )
-from pyllama.models import (
+from moxing.models import (
     ModelDownloader, ModelInfo, ModelRegistry, download_model
 )
-from pyllama.server import LlamaServer
+from moxing.server import LlamaServer
 
 console = Console()
 
@@ -188,7 +188,7 @@ class AutoRunner:
         
         self._print_config(config)
         
-        from pyllama.client import Client
+        from moxing.client import Client
         
         with LlamaServer(**config.to_server_kwargs()) as server:
             import time

@@ -1,5 +1,5 @@
 """
-pyllama - Python wrapper for llama.cpp server
+moxing (模型) - Python wrapper for llama.cpp
 
 Provides an OpenAI API compatible interface for running GGUF models
 with GPU acceleration (Vulkan, CUDA, ROCm, Metal).
@@ -12,7 +12,7 @@ Features:
 - Multimodal support
 
 Quick start:
-    from pyllama import quick_run, quick_server
+    from moxing import quick_run, quick_server
     
     # Quick inference
     result = quick_run("llama-3.2-3b", "Write a haiku")
@@ -23,21 +23,21 @@ Quick start:
         pass
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
-from pyllama.client import Client, ChatCompletion, Message
-from pyllama.server import LlamaServer, ServerConfig, GPUInfo
-from pyllama.device import (
+from moxing.client import Client, ChatCompletion, Message
+from moxing.server import LlamaServer, ServerConfig, GPUInfo
+from moxing.device import (
     Device, DeviceConfig, DeviceDetector, BackendType,
     detect_best_backend, get_device_config
 )
-from pyllama.models import (
+from moxing.models import (
     ModelDownloader, ModelInfo, ModelRegistry, download_model
 )
-from pyllama.runner import (
+from moxing.runner import (
     AutoRunner, RunConfig, quick_run, quick_server
 )
-from pyllama.binaries import (
+from moxing.binaries import (
     BinaryManager, get_binary_manager, ensure_binaries, get_server_binary
 )
 

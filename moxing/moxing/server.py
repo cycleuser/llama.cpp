@@ -49,7 +49,7 @@ def _find_binary() -> Path:
     
     locations = [
         Path(__file__).parent / "bin" / ("windows" if sys.platform == "win32" else ("darwin" if sys.platform == "darwin" else "linux")) / binary_name,
-        Path.home() / ".cache" / "pyllama" / "binaries" / ("windows" if sys.platform == "win32" else ("darwin" if sys.platform == "darwin" else "linux")) / binary_name,
+        Path.home() / ".cache" / "pyllm" / "binaries" / ("windows" if sys.platform == "win32" else ("darwin" if sys.platform == "darwin" else "linux")) / binary_name,
     ]
     
     for loc in locations:
@@ -57,7 +57,7 @@ def _find_binary() -> Path:
             return loc
     
     try:
-        from pyllama.binaries import get_binary_manager
+        from moxing.binaries import get_binary_manager
         manager = get_binary_manager()
         if not manager.is_downloaded():
             console.print("[blue]Downloading llama.cpp binaries...[/blue]")
@@ -68,8 +68,8 @@ def _find_binary() -> Path:
     
     raise FileNotFoundError(
         f"llama-server binary not found.\n"
-        f"Run 'pyllama download-binaries' to download pre-built binaries,\n"
-        f"or use 'pyllama build' to compile from source.\n"
+        f"Run 'pyllm download-binaries' to download pre-built binaries,\n"
+        f"or use 'pyllm build' to compile from source.\n"
         f"Searched locations:\n" + "\n".join(f"  - {loc}" for loc in locations)
     )
 
@@ -258,7 +258,7 @@ class LlamaServer:
 def main():
     """CLI entry point."""
     import typer
-    from pyllama.cli import app
+    from moxing.cli import app
     app()
 
 

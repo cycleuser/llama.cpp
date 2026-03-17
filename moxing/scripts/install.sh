@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# pyllama-server Installation Script for Linux/macOS
+# moxing-server Installation Script for Linux/macOS
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/ggml-org/llama.cpp/master/pyllama/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/ggml-org/llama.cpp/master/moxing/scripts/install.sh | bash
 #
 # Or:
 #   ./install.sh [--backend cuda|vulkan|rocm|metal|cpu] [--no-venv]
@@ -52,7 +52,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo -e "${CYAN}============================================================${NC}"
-echo -e "${CYAN}  pyllama-server Installation Script${NC}"
+echo -e "${CYAN}  moxing-server Installation Script${NC}"
 echo -e "${CYAN}============================================================${NC}"
 echo ""
 
@@ -186,7 +186,7 @@ install_deps() {
 # Create virtual environment
 setup_venv() {
     if [ "$NO_VENV" = false ]; then
-        VENV_DIR="$HOME/pyllama-env"
+        VENV_DIR="$HOME/moxing-env"
         
         if [ ! -d "$VENV_DIR" ]; then
             echo ""
@@ -202,15 +202,15 @@ setup_venv() {
     fi
 }
 
-# Install pyllama-server
-install_pyllama() {
+# Install moxing-server
+install_moxing() {
     echo ""
-    echo -e "${BLUE}Installing pyllama-server...${NC}"
+    echo -e "${BLUE}Installing moxing-server...${NC}"
     
     $PYTHON_CMD -m pip install --upgrade pip --quiet
-    $PYTHON_CMD -m pip install pyllama-server --quiet
+    $PYTHON_CMD -m pip install moxing-server --quiet
     
-    echo -e "${GREEN}✓ pyllama-server installed${NC}"
+    echo -e "${GREEN}✓ moxing-server installed${NC}"
 }
 
 # Download binaries
@@ -218,9 +218,9 @@ download_binaries() {
     echo ""
     echo -e "${BLUE}Downloading pre-built binaries ($BACKEND backend)...${NC}"
     
-    $PYTHON_CMD -m pyllama.cli download-binaries --backend "$BACKEND" || {
+    $PYTHON_CMD -m moxing.cli download-binaries --backend "$BACKEND" || {
         echo -e "${YELLOW}⚠ Binary download failed. You may need to download manually.${NC}"
-        echo -e "  Run: pyllama download-binaries --backend $BACKEND"
+        echo -e "  Run: moxing download-binaries --backend $BACKEND"
     }
 }
 
@@ -230,7 +230,7 @@ verify() {
     echo -e "${BLUE}Verifying installation...${NC}"
     
     echo ""
-    $PYTHON_CMD -m pyllama.cli devices || true
+    $PYTHON_CMD -m moxing.cli devices || true
     
     echo ""
     echo -e "${GREEN}============================================================${NC}"
@@ -239,17 +239,17 @@ verify() {
     echo ""
     
     if [ "$NO_VENV" = false ]; then
-        echo -e "To use pyllama, activate the virtual environment:"
+        echo -e "To use moxing, activate the virtual environment:"
         echo -e "  ${CYAN}source $VENV_DIR/bin/activate${NC}"
         echo ""
     fi
     
     echo -e "Quick start commands:"
-    echo -e "  ${CYAN}pyllama devices${NC}        # List GPUs"
-    echo -e "  ${CYAN}pyllama models${NC}         # List popular models"
-    echo -e "  ${CYAN}pyllama download llama-3.2-3b${NC}  # Download a model"
-    echo -e "  ${CYAN}pyllama run llama-3.2-3b${NC}       # Run inference"
-    echo -e "  ${CYAN}pyllama serve llama-3.2-3b${NC}     # Start API server"
+    echo -e "  ${CYAN}moxing devices${NC}        # List GPUs"
+    echo -e "  ${CYAN}moxing models${NC}         # List popular models"
+    echo -e "  ${CYAN}moxing download llama-3.2-3b${NC}  # Download a model"
+    echo -e "  ${CYAN}moxing run llama-3.2-3b${NC}       # Run inference"
+    echo -e "  ${CYAN}moxing serve llama-3.2-3b${NC}     # Start API server"
     echo ""
 }
 
@@ -257,7 +257,7 @@ verify() {
 main() {
     install_deps
     setup_venv
-    install_pyllama
+    install_moxing
     download_binaries
     verify
 }
