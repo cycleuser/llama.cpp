@@ -4,6 +4,7 @@ CLI interface for pyllama
 
 import os
 import sys
+import platform
 import subprocess
 from pathlib import Path
 from typing import Optional, List
@@ -372,6 +373,81 @@ def clear_cache(
         downloader.clear_cache(model)
         console.print("[green]Model cache cleared[/green]")
     console.print("[green]Cache cleared[/green]")
+
+
+@app.command("diagnose")
+def diagnose(
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+    install: bool = typer.Option(False, "--install", "-i", help="Auto-install after diagnosis"),
+):
+    """Diagnose system and show installation recommendations."""
+    import subprocess
+    
+    script_path = Path(__file__).parent.parent / "scripts" / "detect_and_install.py"
+    
+    if not script_path.exists():
+        console.print("[yellow]Running built-in diagnostics...[/yellow]")
+        
+        from pyllama.device import DeviceDetector, BackendType
+        
+        detector = DeviceDetector()
+        devices = detector.detect()
+        
+        if json_output:
+            import json
+            data = {
+                "platform": sys.platform,
+                "python_version": platform.python_version(),
+                "devices": [
+                    {
+                        "index": d.index,
+                        "name": d.name,
+                        "backend": d.backend.value,
+                        "memory_mb": d.memory_mb,
+                        "vendor": d.vendor,
+                    }
+                    for d in devices
+                ],
+                "recommended_backend": min(
+                    [d.backend for d in devices if d.backend != BackendType.CPU],
+                    default=BackendType.CPU
+                ).value,
+            }
+            print(json.dumps(data, indent=2))
+        else:
+            console.print(Panel(
+                f"[cyan]Platform:[/cyan] {sys.platform}\n"
+                f"[cyan]Python:[/cyan] {platform.python_version()}\n"
+                f"[cyan]Devices:[/cyan] {len(devices)} found",
+                title="System Diagnostics"
+            ))
+            
+            if devices:
+                table = Table(title="Detected Devices")
+                table.add_column("Index", style="cyan")
+                table.add_column("Name", style="green")
+                table.add_column("Backend", style="magenta")
+                table.add_column("Memory", style="yellow")
+                
+                for d in devices:
+                    mem = f"{d.memory_gb:.1f}GB" if d.memory_mb > 0 else "N/A"
+                    table.add_row(str(d.index), d.name, d.backend.value, mem)
+                
+                console.print(table)
+            
+            if install:
+                console.print("\n[blue]Starting automatic installation...[/blue]")
+                import subprocess
+                subprocess.run([sys.executable, "-m", "pip", "install", "pyllama-server"])
+        return
+    
+    cmd = [sys.executable, str(script_path)]
+    if json_output:
+        cmd.append("--json")
+    if install:
+        cmd.append("--install")
+    
+    subprocess.run(cmd)
 
 
 if __name__ == "__main__":
