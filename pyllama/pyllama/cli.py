@@ -294,7 +294,7 @@ def build_binary(
     jobs: int = typer.Option(8, "-j", "--jobs", help="Parallel jobs"),
     output: Optional[Path] = typer.Option(None, "-o", "--output", help="Output directory for binaries"),
 ):
-    """Build llama.cpp binaries."""
+    """Build llama.cpp binaries from source."""
     console.print(f"[blue]Building llama.cpp with {backend} backend...[/blue]")
     
     llama_cpp_dir = Path(__file__).parent.parent.parent
@@ -328,15 +328,49 @@ def build_binary(
         console.print(f"[green]Build complete! Binaries at: {build_dir / 'bin'}[/green]")
 
 
-@app.command()
-def clear_cache(
-    model: Optional[str] = typer.Argument(None, help="Specific model to remove")
+@app.command("download-binaries")
+def download_binaries(
+    backend: str = typer.Option("auto", "-b", "--backend", help="GPU backend (auto, vulkan, cuda, metal, cpu)"),
+    force: bool = typer.Option(False, "-f", "--force", help="Force re-download"),
 ):
-    """Clear model cache."""
-    from pyllama.models import ModelDownloader
+    """Download pre-built llama.cpp binaries."""
+    from pyllama.binaries import get_binary_manager
     
-    downloader = ModelDownloader()
-    downloader.clear_cache(model)
+    manager = get_binary_manager()
+    
+    console.print(f"[blue]Downloading binaries for {manager.platform}...[/blue]")
+    
+    try:
+        manager.download_binaries(backend=backend, force=force)
+        
+        binaries = manager.list_cached_binaries()
+        console.print(f"\n[green]Installed binaries:[/green]")
+        for b in binaries[:10]:
+            console.print(f"  - {b}")
+        if len(binaries) > 10:
+            console.print(f"  ... and {len(binaries) - 10} more")
+    except Exception as e:
+        console.print(f"[red]Download failed: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command("clear-cache")
+def clear_cache(
+    model: Optional[str] = typer.Argument(None, help="Specific model to remove"),
+    binaries: bool = typer.Option(False, "--binaries", help="Clear binary cache"),
+):
+    """Clear model and/or binary cache."""
+    if binaries or model is None:
+        from pyllama.binaries import get_binary_manager
+        manager = get_binary_manager()
+        manager.clear_cache()
+        console.print("[green]Binary cache cleared[/green]")
+    
+    if model or not binaries:
+        from pyllama.models import ModelDownloader
+        downloader = ModelDownloader()
+        downloader.clear_cache(model)
+        console.print("[green]Model cache cleared[/green]")
     console.print("[green]Cache cleared[/green]")
 
 
