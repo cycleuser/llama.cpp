@@ -1,5 +1,8 @@
-recursive-include pyllama/bin *
-recursive-include pyllama *.py
-include pyproject.toml
 include README.md
+include pyproject.toml
 include LICENSE
+recursive-include pyllama *.py
+recursive-exclude pyllama/bin *
+include pyllama/bin/windows/.gitkeep
+include pyllama/bin/linux/.gitkeep
+include pyllama/bin/darwin/.gitkeep

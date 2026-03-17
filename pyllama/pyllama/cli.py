@@ -4,6 +4,7 @@ CLI interface for pyllama
 
 import os
 import sys
+import json
 import platform
 import subprocess
 from pathlib import Path
@@ -448,6 +449,249 @@ def diagnose(
         cmd.append("--install")
     
     subprocess.run(cmd)
+
+
+@app.command("bench")
+def benchmark(
+    model: str = typer.Argument(..., help="Path to GGUF model file"),
+    prompt: str = typer.Option("standard", "-p", "--prompt", help="Prompt type: quick, standard, code, creative, or custom text"),
+    n_tokens: int = typer.Option(128, "-n", "--tokens", help="Number of tokens to generate"),
+    n_runs: int = typer.Option(1, "-r", "--runs", help="Number of benchmark runs"),
+    warmup: bool = typer.Option(True, "-w", "--warmup", help="Run warmup iteration"),
+    ctx_size: int = typer.Option(4096, "-c", "--ctx-size", help="Context size"),
+    compare: Optional[str] = typer.Option(None, "--compare", help="Second model to compare"),
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+):
+    """Benchmark model performance (tokens/second, memory usage)."""
+    from pyllama.benchmark import BenchmarkRunner, estimate_speed
+    from pyllama.device import DeviceDetector, BackendType
+    import time
+    
+    model_path = Path(model)
+    if not model_path.exists():
+        console.print(f"[red]Model not found: {model}[/red]")
+        raise typer.Exit(1)
+    
+    model_size_gb = model_path.stat().st_size / (1024 ** 3)
+    
+    console.print(Panel(
+        f"[cyan]Model:[/cyan] {model_path.name}\n"
+        f"[cyan]Size:[/cyan] {model_size_gb:.2f} GB\n"
+        f"[cyan]Tokens:[/cyan] {n_tokens}\n"
+        f"[cyan]Runs:[/cyan] {n_runs}",
+        title="Benchmark Configuration"
+    ))
+    
+    runner = BenchmarkRunner(verbose=False)
+    
+    models_to_bench = [model]
+    if compare:
+        if Path(compare).exists():
+            models_to_bench.append(compare)
+        else:
+            console.print(f"[yellow]Warning: Compare model not found: {compare}[/yellow]")
+    
+    results = []
+    
+    for i, m in enumerate(models_to_bench):
+        if len(models_to_bench) > 1:
+            console.print(f"\n[bold]Benchmarking model {i+1}/{len(models_to_bench)}: {Path(m).name}[/bold]")
+        
+        try:
+            result = runner.run(
+                model=m,
+                prompt=prompt,
+                n_tokens=n_tokens,
+                n_runs=n_runs,
+                warmup=warmup,
+                ctx_size=ctx_size
+            )
+            results.append(result)
+            
+            if not json_output and len(models_to_bench) == 1:
+                runner.print_results(result)
+        
+        except Exception as e:
+            console.print(f"[red]Benchmark failed: {e}[/red]")
+            raise typer.Exit(1)
+    
+    if json_output:
+        output = {
+            "model": results[0].model,
+            "model_size_gb": results[0].model_size_gb,
+            "prompt_tokens": results[0].prompt_tokens,
+            "completion_tokens": results[0].completion_tokens,
+            "tokens_per_second": round(results[0].tokens_per_second, 2),
+            "prompt_tokens_per_second": round(results[0].prompt_tokens_per_second, 2),
+            "total_time_sec": round(results[0].total_time_sec, 2),
+            "peak_memory_mb": round(results[0].peak_memory_mb, 2),
+        }
+        print(json.dumps(output, indent=2))
+    
+    elif len(results) > 1:
+        runner.print_comparison(results)
+    
+    console.print()
+    speed_display = results[0].tokens_per_second
+    console.print(f"[bold green]Speed: {speed_display:.2f} tokens/second[/bold green]")
+
+
+@app.command("speed")
+def speed_test(
+    model: str = typer.Argument(..., help="Path to GGUF model file"),
+    prompt: str = typer.Option("Hello, how are you?", "-p", "--prompt", help="Test prompt"),
+    ctx_size: int = typer.Option(2048, "-c", "--ctx-size", help="Context size"),
+):
+    """Quick speed test with detailed output similar to ollama."""
+    from pyllama import LlamaServer, Client
+    from pyllama.device import DeviceDetector
+    import time
+    
+    model_path = Path(model)
+    if not model_path.exists():
+        console.print(f"[red]Model not found: {model}[/red]")
+        raise typer.Exit(1)
+    
+    detector = DeviceDetector()
+    devices = detector.detect()
+    device_config = detector.get_best_device(model_path.stat().st_size / (1024**3))
+    
+    model_size_gb = model_path.stat().st_size / (1024 ** 3)
+    
+    console.print()
+    console.print(f"[bold cyan]Model:[/bold cyan] {model_path.name}")
+    console.print(f"[bold cyan]Size:[/bold cyan] {model_size_gb:.2f} GB")
+    console.print(f"[bold cyan]Device:[/bold cyan] {device_config.device.name} ({device_config.backend.value})")
+    console.print()
+    
+    port = 8080 + hash(str(model_path)) % 1000
+    
+    server = LlamaServer(
+        model=str(model_path),
+        port=port,
+        ctx_size=ctx_size,
+        n_gpu_layers=device_config.n_gpu_layers,
+        device=f"{device_config.backend.value.capitalize()}{device_config.device.index}"
+    )
+    
+    try:
+        console.print("[dim]Loading model...[/dim]")
+        start_load = time.time()
+        server.start(timeout=120)
+        load_time = time.time() - start_load
+        
+        console.print(f"[green]Model loaded in {load_time:.2f}s[/green]")
+        console.print()
+        
+        client = Client(server.base_url)
+        
+        console.print(f"[bold]Prompt:[/bold] {prompt}")
+        console.print()
+        
+        console.print("[bold green]Generating...[/bold green]")
+        
+        prompt_start = time.time()
+        
+        response = client.chat.completions.create(
+            model="llama",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=100,
+            stream=True
+        )
+        
+        generated_text = ""
+        first_token_time = None
+        token_count = 0
+        
+        for chunk in response:
+            if isinstance(chunk, dict) and chunk.get("choices"):
+                delta = chunk["choices"][0].get("delta", {})
+                content = delta.get("content", "")
+                if content:
+                    if first_token_time is None:
+                        first_token_time = time.time()
+                    generated_text += content
+                    token_count += 1
+                    print(content, end="", flush=True)
+        
+        total_time = time.time() - prompt_start
+        
+        if token_count > 0 and total_time > 0:
+            tokens_per_second = token_count / total_time
+        else:
+            tokens_per_second = 0
+        
+        console.print()
+        console.print()
+        console.print(Panel(
+            f"[green]Total tokens:[/green] {token_count}\n"
+            f"[green]Time:[/green] {total_time:.2f}s\n"
+            f"[green]Speed:[/green] {tokens_per_second:.2f} tokens/s\n"
+            f"[green]Time to first token:[/green] {first_token_time - prompt_start:.2f}s" if first_token_time else "",
+            title="Performance"
+        ))
+        
+    finally:
+        server.stop()
+
+
+@app.command("info")
+def model_info(
+    model: str = typer.Argument(..., help="Path to GGUF model file"),
+):
+    """Show detailed model information and estimated performance."""
+    from pyllama.device import DeviceDetector
+    from pyllama.benchmark import estimate_speed
+    import struct
+    
+    model_path = Path(model)
+    if not model_path.exists():
+        console.print(f"[red]Model not found: {model}[/red]")
+        raise typer.Exit(1)
+    
+    model_size_gb = model_path.stat().st_size / (1024 ** 3)
+    
+    detector = DeviceDetector()
+    devices = detector.detect()
+    device_config = detector.get_best_device(model_size_gb)
+    
+    console.print(Panel(
+        f"[cyan]File:[/cyan] {model_path.name}\n"
+        f"[cyan]Path:[/cyan] {model_path}\n"
+        f"[cyan]Size:[/cyan] {model_size_gb:.2f} GB",
+        title="Model Information"
+    ))
+    
+    table = Table(title="Recommended Configuration")
+    table.add_column("Setting", style="cyan")
+    table.add_column("Value", style="green")
+    table.add_column("Notes", style="yellow")
+    
+    table.add_row("Backend", device_config.backend.value, "Best available for your hardware")
+    table.add_row("Device", device_config.device.name, "")
+    table.add_row("GPU Layers", str(device_config.n_gpu_layers) if device_config.n_gpu_layers >= 0 else "all", "")
+    table.add_row("Context Size", str(device_config.recommended_ctx), "Based on available memory")
+    table.add_row("Notes", device_config.notes, "")
+    
+    console.print(table)
+    
+    if devices:
+        console.print()
+        gpu_table = Table(title="Available GPUs")
+        gpu_table.add_column("Device", style="cyan")
+        gpu_table.add_column("Memory", style="green")
+        gpu_table.add_column("Est. Speed", style="yellow")
+        
+        for d in devices:
+            if d.backend.value != "cpu":
+                est = estimate_speed(model_size_gb, d.memory_gb, d.backend.value)
+                gpu_table.add_row(
+                    f"{d.name}",
+                    f"{d.memory_gb:.1f} GB",
+                    f"~{est['estimated_tokens_per_second']} t/s ({est['mode']})"
+                )
+        
+        console.print(gpu_table)
 
 
 if __name__ == "__main__":

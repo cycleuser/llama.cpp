@@ -25,23 +25,21 @@ def clean():
     dirs_to_remove = [
         PROJECT_DIR / "build",
         PROJECT_DIR / "dist",
-        PROJECT_DIR / "*.egg-info",
-        PROJECT_DIR / "pyllama" / "*.egg-info",
-        PROJECT_DIR / "pyllama" / "__pycache__",
     ]
     
-    for pattern in dirs_to_remove:
-        for path in Path(".").glob(str(pattern).replace(str(PROJECT_DIR) + "/", "")):
-            if path.exists():
-                print(f"  Removing: {path}")
-                if path.is_dir():
-                    shutil.rmtree(path)
-                else:
-                    path.unlink()
+    for path in dirs_to_remove:
+        if path.exists():
+            print(f"  Removing: {path}")
+            shutil.rmtree(path)
+    
+    for egg_info in PROJECT_DIR.glob("*.egg-info"):
+        print(f"  Removing: {egg_info}")
+        shutil.rmtree(egg_info)
     
     for pycache in PROJECT_DIR.rglob("__pycache__"):
-        print(f"  Removing: {pycache}")
-        shutil.rmtree(pycache)
+        if "bin" not in str(pycache):
+            print(f"  Removing: {pycache}")
+            shutil.rmtree(pycache)
     
     print("Clean complete")
 
