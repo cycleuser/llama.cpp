@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "moxing"
-version = "0.1.1"
+version = "0.1.2"
 description = "Python wrapper for llama.cpp - OpenAI API compatible LLM backend with auto GPU detection"
 readme = "README.md"
 license = {text = "MIT"}

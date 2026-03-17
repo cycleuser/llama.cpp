@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# moxing-server Installation Script for Linux/macOS
+# moxing Installation Script for Linux/macOS
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/ggml-org/llama.cpp/master/moxing/scripts/install.sh | bash
@@ -52,7 +52,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo -e "${CYAN}============================================================${NC}"
-echo -e "${CYAN}  moxing-server Installation Script${NC}"
+echo -e "${CYAN}  moxing Installation Script${NC}"
 echo -e "${CYAN}============================================================${NC}"
 echo ""
 
@@ -202,15 +202,15 @@ setup_venv() {
     fi
 }
 
-# Install moxing-server
+# Install moxing
 install_moxing() {
     echo ""
-    echo -e "${BLUE}Installing moxing-server...${NC}"
+    echo -e "${BLUE}Installing moxing...${NC}"
     
     $PYTHON_CMD -m pip install --upgrade pip --quiet
-    $PYTHON_CMD -m pip install moxing-server --quiet
+    $PYTHON_CMD -m pip install moxing --quiet
     
-    echo -e "${GREEN}✓ moxing-server installed${NC}"
+    echo -e "${GREEN}✓ moxing installed${NC}"
 }
 
 # Download binaries
@@ -246,10 +246,12 @@ verify() {
     
     echo -e "Quick start commands:"
     echo -e "  ${CYAN}moxing devices${NC}        # List GPUs"
-    echo -e "  ${CYAN}moxing models${NC}         # List popular models"
-    echo -e "  ${CYAN}moxing download llama-3.2-3b${NC}  # Download a model"
-    echo -e "  ${CYAN}moxing run llama-3.2-3b${NC}       # Run inference"
-    echo -e "  ${CYAN}moxing serve llama-3.2-3b${NC}     # Start API server"
+    echo -e "  ${CYAN}moxing speed model.gguf${NC}  # Speed test"
+    echo -e "  ${CYAN}moxing bench model.gguf${NC}  # Benchmark"
+    echo -e "  ${CYAN}moxing serve model.gguf${NC}  # Start API server"
+    echo ""
+    echo -e "Download a model:"
+    echo -e "  ${CYAN}modelscope download --model Tesslate/OmniCoder-9B-GGUF omnicoder-9b-q4_k_m.gguf${NC}"
     echo ""
 }
 

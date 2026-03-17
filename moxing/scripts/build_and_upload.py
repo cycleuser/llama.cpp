@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build and upload moxing-server to PyPI.
+Build and upload moxing to PyPI.
 
 Usage:
     python scripts/build_and_upload.py --build
@@ -111,7 +111,7 @@ def check():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Build and upload moxing-server")
+    parser = argparse.ArgumentParser(description="Build and upload moxing")
     parser.add_argument("--clean", action="store_true", help="Clean build artifacts")
     parser.add_argument("--build", action="store_true", help="Build the package")
     parser.add_argument("--check", action="store_true", help="Check the package")

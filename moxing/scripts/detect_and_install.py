@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Automatic system detection and installation script for moxing-server.
+Automatic system detection and installation script for moxing.
 
 This script detects:
 - Operating system and version
@@ -432,8 +432,8 @@ class InstallationGuide:
     
     def _windows_commands(self) -> List[str]:
         commands = [
-            "# Install moxing-server",
-            "pip install moxing-server",
+            "# Install moxing",
+            "pip install moxing",
             "",
             "# Download pre-built binaries",
             f"moxing download-binaries --backend {self.info.recommended_backend.value}",
@@ -486,8 +486,8 @@ class InstallationGuide:
             ])
         
         commands.extend([
-            "# Install moxing-server",
-            "pip install moxing-server",
+            "# Install moxing",
+            "pip install moxing",
             "",
             "# Download pre-built binaries",
             f"moxing download-binaries --backend {self.info.recommended_backend.value}",
@@ -510,8 +510,8 @@ class InstallationGuide:
             "python3.11 -m venv ~/moxing-env",
             "source ~/moxing-env/bin/activate",
             "",
-            "# Install moxing-server",
-            "pip install moxing-server",
+            "# Install moxing",
+            "pip install moxing",
             "",
         ]
         

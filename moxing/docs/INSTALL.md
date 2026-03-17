@@ -1,6 +1,6 @@
 # Installation Guide
 
-Complete installation guide for pyllm across all platforms, operating systems, and hardware configurations.
+Complete installation guide for moxing across all platforms, operating systems, and hardware configurations.
 
 ## Table of Contents
 
@@ -15,6 +15,7 @@ Complete installation guide for pyllm across all platforms, operating systems, a
   - [CUDA (NVIDIA)](#cuda-nvidia)
   - [ROCm (AMD)](#rocm-amd)
   - [Metal (Apple Silicon)](#metal-apple-silicon)
+- [Model Download](#model-download)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -22,14 +23,14 @@ Complete installation guide for pyllm across all platforms, operating systems, a
 ## Quick Start
 
 ```bash
-# Install pyllm
-pip install pyllm
+# Install moxing
+pip install moxing
 
 # Download pre-built binaries
-pyllm download-binaries
+moxing download-binaries
 
 # Verify installation
-pyllm devices
+moxing devices
 ```
 
 ---
@@ -66,14 +67,14 @@ pyllm devices
 # 1. Install Python 3.11+ from python.org or Microsoft Store
 winget install Python.Python.3.12
 
-# 2. Install pyllm
-pip install pyllm
+# 2. Install moxing
+pip install moxing
 
 # 3. Download binaries (auto-selects Vulkan backend)
-pyllm download-binaries
+moxing download-binaries
 
 # 4. Verify GPU detection
-pyllm devices
+moxing devices
 ```
 
 #### Windows Hardware Detection
@@ -89,7 +90,7 @@ pyllm devices
 
 ```powershell
 # Check Vulkan support
-pyllm devices
+moxing devices
 
 # If no Vulkan devices found, install Vulkan Runtime
 # Download from: https://vulkan.lunarg.com/sdk/home
@@ -105,7 +106,7 @@ pyllm devices
 nvidia-smi
 
 # 3. Download CUDA binaries
-pyllm download-binaries --backend cuda
+moxing download-binaries --backend cuda
 ```
 
 #### Windows Troubleshooting
@@ -116,10 +117,10 @@ pyllm download-binaries --backend cuda
 winget install Microsoft.VCRedist.2015+.x64
 
 # 2. Check DLL dependencies
-pyllm download-binaries --force
+moxing download-binaries --force
 
 # 3. Run with verbose output
-pyllm run model.gguf -v
+moxing run model.gguf -v
 ```
 
 ---
@@ -134,20 +135,20 @@ sudo apt update
 sudo apt install -y python3 python3-pip python3-venv
 
 # 2. Create virtual environment (recommended)
-python3 -m venv ~/pyllm-env
-source ~/pyllm-env/bin/activate
+python3 -m venv ~/moxing-env
+source ~/moxing-env/bin/activate
 
-# 3. Install pyllm
-pip install pyllm
+# 3. Install moxing
+pip install moxing
 
 # 4. Install Vulkan support (recommended for AMD/Intel)
 sudo apt install -y vulkan-tools libvulkan1
 
 # 5. Download binaries
-pyllm download-binaries
+moxing download-binaries
 
 # 6. Verify GPU detection
-pyllm devices
+moxing devices
 ```
 
 #### Fedora/RHEL
@@ -159,9 +160,9 @@ sudo dnf install -y python3 python3-pip
 # 2. Install Vulkan
 sudo dnf install -y vulkan-loader vulkan-tools
 
-# 3. Install and setup pyllm
-pip install pyllm
-pyllm download-binaries
+# 3. Install and setup moxing
+pip install moxing
+moxing download-binaries
 ```
 
 #### Arch Linux
@@ -170,9 +171,9 @@ pyllm download-binaries
 # 1. Install dependencies
 sudo pacman -S python python-pip vulkan-tools vulkan-icd-loader
 
-# 2. Install pyllm
-pip install pyllm
-pyllm download-binaries
+# 2. Install moxing
+pip install moxing
+moxing download-binaries
 ```
 
 #### Linux GPU Support Matrix
@@ -199,24 +200,24 @@ pyllm download-binaries
 brew install python@3.11
 
 # 3. Create virtual environment
-python3.11 -m venv ~/pyllm-env
-source ~/pyllm-env/bin/activate
+python3.11 -m venv ~/moxing-env
+source ~/moxing-env/bin/activate
 
-# 4. Install pyllm
-pip install pyllm
+# 4. Install moxing
+pip install moxing
 
 # 5. Download Metal binaries
-pyllm download-binaries --backend metal
+moxing download-binaries --backend metal
 
 # 6. Verify Metal detection
-pyllm devices
+moxing devices
 ```
 
 #### Apple Silicon (M1/M2/M3/M4)
 
 ```bash
 # Metal is automatically detected and used
-pyllm devices
+moxing devices
 
 # Expected output:
 # 0 | Apple M2 | metal | 8.0GB
@@ -226,8 +227,42 @@ pyllm devices
 
 ```bash
 # Uses CPU backend on Intel Macs
-pyllm download-binaries --backend cpu
+moxing download-binaries --backend cpu
 ```
+
+---
+
+## Model Download
+
+### Using ModelScope CLI (Recommended for China)
+
+```bash
+# Install modelscope
+pip install modelscope
+
+# Download OmniCoder-9B GGUF model
+modelscope download --model Tesslate/OmniCoder-9B-GGUF \
+    omnicoder-9b-q4_k_m.gguf \
+    --local_dir ./models
+```
+
+### Using moxing Download
+
+```bash
+# Download from ModelScope
+moxing download Tesslate/OmniCoder-9B-GGUF -q Q4_K_M
+
+# Download from HuggingFace
+moxing download Qwen/Qwen2.5-7B-Instruct-GGUF -q Q4_K_M
+```
+
+### Popular Models
+
+| Model | Source | Command |
+|-------|--------|---------|
+| OmniCoder-9B | ModelScope | `modelscope download --model Tesslate/OmniCoder-9B-GGUF omnicoder-9b-q4_k_m.gguf` |
+| Qwen2.5-7B | HuggingFace | `moxing download Qwen/Qwen2.5-7B-Instruct-GGUF -q Q4_K_M` |
+| Llama-3.2-3B | HuggingFace | `moxing download llama-3.2-3b -q Q4_K_M` |
 
 ---
 
@@ -241,7 +276,7 @@ pyllm download-binaries --backend cpu
 
 1. Install GPU drivers (AMD Adrenalin, Intel Arc, or NVIDIA GeForce)
 2. Vulkan Runtime is usually included with drivers
-3. Verify: `pyllm devices`
+3. Verify: `moxing devices`
 
 #### Linux Vulkan Setup
 
@@ -262,10 +297,10 @@ sudo apt install -y intel-media-va-driver-non-free
 #### Verify Vulkan Detection
 
 ```bash
-pyllm devices
+moxing devices
 
 # Expected output for AMD:
-# 0 | AMD Radeon RX 7900 XTX | vulkan | 24.0GB
+# 0 | AMD Radeon RX590 GME | vulkan | 8.0GB
 ```
 
 ---
@@ -295,8 +330,8 @@ pyllm devices
 # 3. Verify installation
 nvidia-smi
 
-# 4. Install pyllm with CUDA binaries
-pyllm download-binaries --backend cuda
+# 4. Install moxing with CUDA binaries
+moxing download-binaries --backend cuda
 ```
 
 #### Linux CUDA Setup
@@ -321,7 +356,7 @@ source ~/.bashrc
 nvidia-smi
 
 # 5. Download CUDA binaries
-pyllm download-binaries --backend cuda
+moxing download-binaries --backend cuda
 ```
 
 #### CUDA GPU Memory Requirements
@@ -330,6 +365,7 @@ pyllm download-binaries --backend cuda
 |------------|--------------|-------------|
 | 3B (Q4) | 4GB | 6GB |
 | 7B (Q4) | 6GB | 8GB |
+| 9B (Q4) | 8GB | 10GB |
 | 13B (Q4) | 10GB | 12GB |
 | 70B (Q4) | 40GB | 48GB (2x24GB) |
 
@@ -369,16 +405,7 @@ sudo reboot
 rocminfo
 
 # 5. Download ROCm binaries
-pyllm download-binaries --backend rocm
-```
-
-#### ROCm Environment Variables
-
-```bash
-# Add to ~/.bashrc
-export HSA_OVERRIDE_GFX_VERSION=10.3.0  # For RDNA2
-# or
-export HSA_OVERRIDE_GFX_VERSION=11.0.0  # For RDNA3
+moxing download-binaries --backend rocm
 ```
 
 ---
@@ -396,10 +423,10 @@ export HSA_OVERRIDE_GFX_VERSION=11.0.0  # For RDNA3
 
 ```bash
 # Metal is automatically detected on Apple Silicon
-pyllm devices
+moxing devices
 
 # No additional setup needed
-pyllm download-binaries  # Auto-selects Metal
+moxing download-binaries  # Auto-selects Metal
 ```
 
 #### Apple Silicon Memory
@@ -422,7 +449,7 @@ pyllm download-binaries  # Auto-selects Metal
 
 ```bash
 # Solution: Download binaries
-pyllm download-binaries --force
+moxing download-binaries --force
 ```
 
 #### 2. No GPU Detected
@@ -436,14 +463,14 @@ pyllm download-binaries --force
 # Windows/Linux: vulkaninfo
 
 # Force CPU backend
-pyllm download-binaries --backend cpu
+moxing download-binaries --backend cpu
 ```
 
 #### 3. Out of Memory (OOM)
 
 ```bash
 # Use smaller context
-pyllm run model.gguf -c 2048
+moxing run model.gguf -c 2048
 
 # Use smaller quantization
 # Q4_K_M instead of Q5_K_M or Q8_0
@@ -453,10 +480,10 @@ pyllm run model.gguf -c 2048
 
 ```bash
 # Check GPU is being used
-pyllm devices
+moxing devices
 
 # Verify GPU offloading
-pyllm config model.gguf
+moxing config model.gguf
 
 # Should show GPU layers > 0
 ```
@@ -482,7 +509,7 @@ Error: Permission denied
 
 **Solution**:
 ```bash
-chmod +x ~/.cache/pyllm/binaries/linux/*
+chmod +x ~/.cache/moxing/binaries/linux/*
 ```
 
 #### macOS: "App is damaged"
@@ -493,23 +520,23 @@ Error: "llama-server" is damaged and can't be opened
 
 **Solution**:
 ```bash
-xattr -d com.apple.quarantine ~/.cache/pyllm/binaries/darwin/*
+xattr -d com.apple.quarantine ~/.cache/moxing/binaries/darwin/*
 ```
 
 ### Diagnostic Commands
 
 ```bash
 # Show all detected devices
-pyllm devices
+moxing devices
 
 # Show binary location
-pyllm --help
+moxing --help
 
 # Test with small model
-pyllm run tinyllama.q4_k_m.gguf -p "Hello"
+moxing run tinyllama.q4_k_m.gguf -p "Hello"
 
 # Show system info
-pyllm config model.gguf
+moxing config model.gguf
 ```
 
 ---
@@ -520,13 +547,13 @@ For air-gapped systems:
 
 ```bash
 # On internet-connected machine:
-pip download pyllm -d ./packages
-pyllm download-binaries
-cp -r ~/.cache/pyllm ./pyllm-cache
+pip download moxing -d ./packages
+moxing download-binaries
+cp -r ~/.cache/moxing ./moxing-cache
 
 # Transfer to offline machine
-pip install --no-index --find-links=./packages pyllm
-cp -r ./pyllm-cache ~/.cache/pyllm
+pip install --no-index --find-links=./packages moxing
+cp -r ./moxing-cache ~/.cache/moxing
 ```
 
 ---
@@ -535,7 +562,22 @@ cp -r ./pyllm-cache ~/.cache/pyllm
 
 After installation:
 
-1. **Download a model**: `pyllm download llama-3.2-3b`
-2. **Run inference**: `pyllm run llama-3.2-3b -p "Hello"`
-3. **Start server**: `pyllm serve llama-3.2-3b`
-4. **Use with OpenAI SDK**: See [API Documentation](API.md)
+1. **Download a model**: 
+   ```bash
+   modelscope download --model Tesslate/OmniCoder-9B-GGUF omnicoder-9b-q4_k_m.gguf --local_dir ./models
+   ```
+
+2. **Run inference**: 
+   ```bash
+   moxing run ./models/omnicoder-9b-q4_k_m.gguf -p "Hello"
+   ```
+
+3. **Benchmark performance**:
+   ```bash
+   moxing bench ./models/omnicoder-9b-q4_k_m.gguf
+   ```
+
+4. **Start server**: 
+   ```bash
+   moxing serve ./models/omnicoder-9b-q4_k_m.gguf
+   ```

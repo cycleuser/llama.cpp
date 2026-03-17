@@ -1,4 +1,4 @@
-# moxing-server Installation Script for Windows
+# moxing Installation Script for Windows
 #
 # Usage:
 #   Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ggml-org/llama.cpp/master/moxing/scripts/install.ps1" | Invoke-Expression
@@ -31,7 +31,7 @@ function Write-Warn { Write-ColorOutput Yellow $args }
 function Write-Err { Write-ColorOutput Red $args }
 
 if ($Help) {
-    Write-Host "moxing-server Installation Script for Windows"
+    Write-Host "moxing Installation Script for Windows"
     Write-Host ""
     Write-Host "Usage: .\install.ps1 [OPTIONS]"
     Write-Host ""
@@ -43,7 +43,7 @@ if ($Help) {
 }
 
 Write-Info "============================================================"
-Write-Info "  moxing-server Installation Script"
+Write-Info "  moxing Installation Script"
 Write-Info "============================================================"
 Write-Host ""
 
@@ -210,17 +210,17 @@ function Setup-Venv {
     return $pythonCmd
 }
 
-# Install moxing-server
-function Install-Pyllama {
+# Install moxing
+function Install-Moxing {
     param($pythonCmd)
     
     Write-Host ""
-    Write-Info "Installing moxing-server..."
+    Write-Info "Installing moxing..."
     
     Invoke-Expression "$pythonCmd -m pip install --upgrade pip --quiet"
-    Invoke-Expression "$pythonCmd -m pip install moxing-server --quiet"
+    Invoke-Expression "$pythonCmd -m pip install moxing --quiet"
     
-    Write-Success "moxing-server installed"
+    Write-Success "moxing installed"
 }
 
 # Download binaries
@@ -263,10 +263,12 @@ function Verify-Installation {
     
     Write-Host "Quick start commands:"
     Write-Info "  moxing devices"        ; Write-Host "        # List GPUs"
-    Write-Info "  moxing models"         ; Write-Host "         # List popular models"
-    Write-Info "  moxing download llama-3.2-3b"  ; Write-Host "  # Download a model"
-    Write-Info "  moxing run llama-3.2-3b"       ; Write-Host "       # Run inference"
-    Write-Info "  moxing serve llama-3.2-3b"     ; Write-Host "     # Start API server"
+    Write-Info "  moxing speed model.gguf"; Write-Host "     # Speed test"
+    Write-Info "  moxing bench model.gguf"; Write-Host "     # Benchmark"
+    Write-Info "  moxing serve model.gguf"; Write-Host "     # Start API server"
+    Write-Host ""
+    Write-Host "Download a model:"
+    Write-Info "  modelscope download --model Tesslate/OmniCoder-9B-GGUF omnicoder-9b-q4_k_m.gguf"
     Write-Host ""
 }
 
@@ -276,6 +278,6 @@ $pythonCmd = Find-Python
 Detect-GPU
 Check-VCRedist
 $pythonCmd = Setup-Venv $pythonCmd
-Install-Pyllama $pythonCmd
+Install-Moxing $pythonCmd
 Download-Binaries $pythonCmd
 Verify-Installation $pythonCmd
