@@ -37,6 +37,9 @@ from pyllama.models import (
 from pyllama.runner import (
     AutoRunner, RunConfig, quick_run, quick_server
 )
+from pyllama.binaries import (
+    BinaryManager, get_binary_manager, ensure_binaries, get_server_binary
+)
 
 __all__ = [
     # Client
@@ -68,4 +71,10 @@ __all__ = [
     "RunConfig",
     "quick_run",
     "quick_server",
+    
+    # Binaries
+    "BinaryManager",
+    "get_binary_manager",
+    "ensure_binaries",
+    "get_server_binary",
 ]
