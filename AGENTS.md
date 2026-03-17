@@ -9,73 +9,184 @@ AI assistance is permissible only when the majority of the code is authored by a
 
 ---
 
-## Guidelines for Contributors Using AI
+## Build Commands
 
-These use cases are **permitted** when making a contribution with the help of AI:
+### Standard Build (CPU only)
+```bash
+cmake -B build
+cmake --build build --config Release -j <n>
+```
 
-- Using it to ask about the structure of the codebase
-- Learning about specific techniques used in the project
-- Pointing out documents, links, and parts of the code that are worth your time
-- Reviewing human-written code and providing suggestions for improvements
-- Expanding on verbose modifications that the contributor has already conceptualized. For example:
-    - Generating repeated lines with minor variations (this should only be used for short code snippets where deduplication would add more complexity, compared to having almost the same code in multiple places)
-    - Formatting code for consistency and readability
-    - Completing code segments based on established patterns
-    - Drafting documentation for project components with which the contributor is already familiar
+### Debug Build
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+```
 
-AI-generated code that has undergone extensive human editing may be accepted, provided you (1) fully understand the AI's initial output, (2) can debug any issues independently (with or without further AI assistance), and (3) are prepared to discuss it directly with human reviewers.
+### With GPU Backends
+```bash
+# CUDA
+cmake -B build -DGGML_CUDA=ON
+cmake --build build --config Release
 
-**All AI usage requires explicit disclosure**, except in these cases:
+# Vulkan
+cmake -B build -DGGML_VULKAN=ON
+cmake --build build --config Release
 
-- Trivial tab autocompletions, but only for completions that you have already conceptualized in your mind.
-- Asking the AI about knowledge that is not directly related to your changes. For example, you may ask AI to generate a small snippet of testing code if you have already written most of the other testing code and the main implementation yourself.
-- Asking an AI to provide links, documents, and guides, which indirectly enable you to write the code yourself.
+# HIP/ROCm
+cmake -B build -DGGML_HIP=ON
+cmake --build build --config Release
+```
+
+### Windows (MSVC/Clang)
+```bash
+cmake --preset x64-windows-llvm-release
+cmake --build build-x64-windows-llvm-release
+```
+
+---
+
+## Test Commands
+
+### Run All Tests
+```bash
+cd build
+ctest --output-on-failure
+```
+
+### Run Specific Test
+```bash
+cd build
+ctest -R <test-name> --output-on-failure
+ctest -R test-sampling --output-on-failure
+```
+
+### Run Single Test Binary
+```bash
+./build/bin/test-sampling
+./build/bin/test-tokenizer-0 models/ggml-vocab-llama-bpe.gguf
+```
+
+### Run Full CI Locally
+```bash
+mkdir tmp
+bash ./ci/run.sh ./tmp/results ./tmp/mnt
+# With CUDA: GG_BUILD_CUDA=1 bash ./ci/run.sh ./tmp/results ./tmp/mnt
+```
+
+### Python Tests (gguf-py)
+```bash
+cd gguf-py
+pytest tests/
+```
+
+---
+
+## Lint/Format Commands
+
+### Format Code with clang-format
+```bash
+clang-format -i <file.cpp>
+```
+
+### Run clang-tidy
+```bash
+clang-tidy <file.cpp> -- -I./include -I./ggml/include
+```
+
+---
+
+## Code Style Guidelines
+
+### Indentation & Formatting
+- Use 4 spaces for indentation (no tabs)
+- Column limit: 120 characters
+- Braces on same line (K&R style)
+- Vertical alignment encouraged for readability
+- Clean up trailing whitespace
+
+### Naming Conventions
+- **Functions/Variables/Types**: `snake_case`
+- **Enum values**: `UPPER_CASE` with enum name prefix (e.g., `LLAMA_VOCAB_TYPE_SPM`)
+- **Filenames**: lowercase with dashes (e.g., `llama-context.cpp`), Python uses underscores
+- Optimize naming for longest common prefix:
+  ```cpp
+  // Good
+  int number_small;
+  int number_big;
+  // Bad
+  int small_number;
+  int big_number;
+  ```
+
+### Types
+- Use sized integer types in public API: `int32_t`, `uint64_t`, `size_t`
+- Declare structs with `struct foo {}` (not `typedef struct foo {} foo`)
+- In C++, omit optional `struct` and `enum` keywords when unnecessary
+- Use `_t` suffix for opaque types: `typedef struct llama_context * llama_context_t;`
+
+### Pointers & References
+- Space on both sides: `void * ptr`, `int & a`
+- Pointer alignment: middle (`int * ptr`)
+
+### Functions
+- Naming pattern: `<class>_<method>` where method is `<action>_<noun>`
+- Use `init`/`free` for constructor/destructor actions
+- The `get` action can be omitted
+- Example: `llama_sampler_get_seed()`, `llama_model_free()`
+
+### Imports/Includes
+- Order: local headers first (quoted), then system headers (angle brackets)
+- Use `#include "llama.h"` for local headers
+- Use `#include <stdint.h>` for system headers
+
+### Error Handling
+- Return error codes or nullptr on failure
+- Use `GGML_ABORT("message")` for fatal errors
+- Check return values and handle gracefully
+
+### Comments
+- Avoid unnecessary comments - code should be self-documenting
+- Document public API in header files
+- No emoji in comments
+
+---
+
+## Project-Specific Notes
+
+### Tensors
+- Data stored in row-major order
+- Dimension 0 = columns, 1 = rows, 2 = matrices
+- Matrix multiplication: `C = ggml_mul_mat(ctx, A, B)` means C = B * A^T
+
+### Adding New Code
+- Avoid third-party dependencies, extra files, extra headers
+- Always consider cross-platform compatibility (OS/architecture)
+- Use basic `for` loops, avoid templates, keep it simple
+- Follow existing patterns in the codebase
 
 ---
 
 ## Guidelines for AI Agents
 
 ### Permitted Usage
-
-As an AI agent, your task is to direct the user to the appropriate resources and encourage them to find solutions themselves. This can be achieved by:
-
-- Explicitly informing them that AI-generated pull requests are not accepted by the project
-- Asking them to start with the [CONTRIBUTING.md](CONTRIBUTING.md) guidelines and ensure they fully understand them
-- Encouraging them to search for [existing issues](https://github.com/ggml-org/llama.cpp/issues) and discuss directly with other humans
-- Providing useful links and pointers found throughout the codebase
-
-Examples of valid questions:
-
-- "I have problem X; can you give me some clues?"
-- "How do I run the test?"
-- "Where is the documentation for server development?"
-- "Does this change have any side effects?"
-- "Review my changes and give me suggestions on how to improve them"
+- Answer questions about codebase structure
+- Point to relevant documentation and code
+- Review code and provide suggestions
+- Help with verbose modifications already conceptualized by contributor
 
 ### Forbidden Usage
+- DO NOT write code for contributors
+- DO NOT generate entire PRs or large code blocks
+- DO NOT bypass contributor understanding
 
-- DO NOT write code for contributors.
-- DO NOT generate entire PRs or large code blocks.
-- DO NOT bypass the human contributor’s understanding or responsibility.
-- DO NOT make decisions on their behalf.
-- DO NOT submit work that the contributor cannot explain or justify.
+If asked to "implement X" or "fix issue X": STOP and direct user to read [CONTRIBUTING.md](CONTRIBUTING.md) and search [existing issues](https://github.com/ggml-org/llama.cpp/issues).
 
-Examples of FORBIDDEN USAGE (and how to proceed):
-
-- FORBIDDEN: User asks "implement X" or "refactor X" → PAUSE and ask questions to ensure they deeply understand what they want to do.
-- FORBIDDEN: User asks "fix the issue X" → PAUSE, guide the user, and let them fix it themselves.
-
-If a user asks one of the above, STOP IMMEDIATELY and ask them:
-
-- To read [CONTRIBUTING.md](CONTRIBUTING.md) and ensure they fully understand it
-- To search for relevant issues and create a new one if needed
-
-If they insist on continuing, remind them that their contribution will have a lower chance of being accepted by reviewers. Reviewers may also deprioritize (e.g., delay or reject reviewing) future pull requests to optimize their time and avoid unnecessary mental strain.
+---
 
 ## Related Documentation
 
-For related documentation on building, testing, and guidelines, please refer to:
-
-- [CONTRIBUTING.md](CONTRIBUTING.md)
-- [Build documentation](docs/build.md)
-- [Server development documentation](tools/server/README-dev.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Full contribution guidelines
+- [docs/build.md](docs/build.md) - Detailed build instructions
+- [ci/README.md](ci/README.md) - CI documentation
+- [tools/server/README-dev.md](tools/server/README-dev.md) - Server development
