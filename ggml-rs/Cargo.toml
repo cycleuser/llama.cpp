@@ -1,0 +1,54 @@
+[package]
+name = "ggml-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["ggml-rs contributors"]
+license = "MIT"
+description = "A pure Rust implementation of ggml tensor library"
+keywords = ["machine-learning", "tensor", "inference", "llm"]
+categories = ["science", "algorithms"]
+
+[features]
+default = ["cpu"]
+cpu = []
+metal = ["dep:metal-rs"]
+cuda = ["dep:cust"]
+vulkan = ["dep:ash"]
+quantization = []
+
+[dependencies]
+thiserror = "1.0"
+anyhow = "1.0"
+parking_lot = "0.12"
+arc-swap = "1.6"
+crossbeam = "0.8"
+num-traits = "0.2"
+bytemuck = "1.14"
+memmap2 = "0.9"
+half = { version = "2.4", features = ["num-traits"] }
+
+# Optional backends
+metal-rs = { version = "0.2", optional = true }
+cust = { version = "0.3", optional = true }
+ash = { version = "0.37", optional = true }
+
+[dev-dependencies]
+criterion = "0.5"
+proptest = "1.4"
+
+[[bench]]
+name = "tensor_ops"
+harness = false
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+opt-level = 3
+
+[profile.dev]
+opt-level = 1
+
+[workspace]
+members = [
+    "examples/simple-inference",
+]
