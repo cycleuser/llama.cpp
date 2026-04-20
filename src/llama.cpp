@@ -1,6 +1,5 @@
 #include "llama.h"
 
-#include "ggml-cpp.h"
 #include "llama-impl.h"
 
 #include "llama-chat.h"
@@ -12,6 +11,7 @@
 #include "llama-model.h"
 
 #include "ggml.h"
+#include "ggml-cpp.h"
 #include "ggml-backend.h"
 #include "gguf.h"
 
@@ -24,6 +24,7 @@
 #include <cstring>
 #include <ctime>
 #include <stdexcept>
+#include <vector>
 
 #if defined(_MSC_VER)
 #pragma warning(disable: 4244 4267) // possible loss of data
@@ -53,7 +54,7 @@ struct llama_device_memory_data {
 
 static std::vector<llama_device_memory_data> llama_get_device_memory_data(
         const char * path_model, const llama_model_params * mparams, const llama_context_params * cparams,
-        std::vector<ggml_backend_dev_t> & devs, uint32_t & hp_ngl, uint32_t & hp_n_ctx_train, uint32_t & hp_n_expert,
+        std::vector<llama_device> & devs, uint32_t & hp_ngl, uint32_t & hp_n_ctx_train, uint32_t & hp_n_expert,
         const ggml_log_level log_level) {
     struct user_data_t {
         struct {
@@ -90,12 +91,16 @@ static std::vector<llama_device_memory_data> llama_get_device_memory_data(
         throw std::runtime_error("failed to create llama_context from model");
     }
 
-    std::vector<llama_device_memory_data> ret(model->devices.size());
+    const size_t nd = model->n_devices();
+    std::vector<llama_device_memory_data> ret(nd + 1);
 
     std::map<ggml_backend_buffer_type_t, llama_memory_breakdown_data> memory_breakdown = ctx->memory_breakdown();
 
     for (const auto & [buft, mb] : memory_breakdown) {
         if (ggml_backend_buft_is_host(buft)) {
+            ret.back().mb.model   += mb.model;
+            ret.back().mb.context += mb.context;
+            ret.back().mb.compute += mb.compute;
             continue;
         }
 
@@ -103,8 +108,8 @@ static std::vector<llama_device_memory_data> llama_get_device_memory_data(
         if (!dev) {
             continue;
         }
-        for (size_t i = 0; i < ret.size(); i++) {
-            if (model->devices[i] == dev) {
+        for (size_t i = 0; i < nd; i++) {
+            if (model->devices[i].dev == dev) {
                 ret[i].mb.model   += mb.model;
                 ret[i].mb.context += mb.context;
                 ret[i].mb.compute += mb.compute;
@@ -112,20 +117,29 @@ static std::vector<llama_device_memory_data> llama_get_device_memory_data(
             }
         }
     }
-    for (size_t i = 0; i < ret.size(); i++) {
+
+    {
+        ggml_backend_dev_t cpu_dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
+        if (cpu_dev == nullptr) {
+            throw std::runtime_error(format("%s: no CPU backend found", __func__));
+        }
         size_t free;
         size_t total;
-        ggml_backend_dev_memory(model->devices[i], &free, &total);
+        ggml_backend_dev_memory(cpu_dev, &free, &total);
+        ret.back().free  = free;
+        ret.back().total = total;
+    }
+    for (size_t i = 0; i < nd; i++) {
+        size_t free;
+        size_t total;
+        ggml_backend_dev_memory(model->devices[i].dev, &free, &total);
 
         // devices can return 0 bytes for free and total memory if they do not
         // have any to report. in this case, we will use the host memory as a fallback
         // fixes: https://github.com/ggml-org/llama.cpp/issues/18577
         if (free == 0 && total == 0) {
-            ggml_backend_dev_t cpu_dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
-            if (cpu_dev == nullptr) {
-                throw std::runtime_error(format("%s: no CPU backend found", __func__));
-            }
-            ggml_backend_dev_memory(cpu_dev, &free, &total);
+            free  = ret.back().free;
+            total = ret.back().total;
         }
         ret[i].free  = free;
         ret[i].total = total;
@@ -162,11 +176,14 @@ static void llama_params_fit_impl(
         const char * path_model, struct llama_model_params * mparams, struct llama_context_params * cparams,
         float * tensor_split, struct llama_model_tensor_buft_override * tensor_buft_overrides,
         size_t * margins_s, uint32_t n_ctx_min, enum ggml_log_level log_level) {
+    if (mparams->split_mode == LLAMA_SPLIT_MODE_TENSOR) {
+        throw llama_params_fit_exception("llama_params_fit is not implemented for SPLIT_MODE_TENSOR, abort");
+    }
     constexpr int64_t MiB = 1024*1024;
     typedef std::vector<llama_device_memory_data> dmds_t;
     const llama_model_params default_mparams = llama_model_default_params();
 
-    std::vector<ggml_backend_dev_t> devs;
+    std::vector<llama_device> devs;
     uint32_t hp_ngl = 0; // hparams.n_gpu_layers
     uint32_t hp_nct = 0; // hparams.n_ctx_train
     uint32_t hp_nex = 0; // hparams.n_expert
@@ -176,25 +193,25 @@ static void llama_params_fit_impl(
     LLAMA_LOG_DEBUG("%s: getting device memory data for initial parameters:\n", __func__);
     const dmds_t dmds_full = llama_get_device_memory_data(path_model, mparams, cparams, devs, hp_ngl, hp_nct, hp_nex, log_level);
     const size_t nd = devs.size(); // number of devices
-    if (nd == 0) {
-        LLAMA_LOG_INFO("%s: no devices with dedicated memory found\n", __func__);
-        return;
-    }
 
     std::vector<int64_t> margins; // this function uses int64_t rather than size_t for memory sizes to more conveniently handle deficits
     margins.reserve(nd);
-    for (size_t id = 0; id < nd; id++) {
-        margins.push_back(margins_s[id]);
+    if (nd == 0) {
+        margins.push_back(margins_s[0]);
+    } else {
+        for (size_t id = 0; id < nd; id++) {
+            margins.push_back(margins_s[id]);
+        }
     }
 
     std::vector<std::string> dev_names;
     {
         dev_names.reserve(nd);
         size_t max_length = 0;
-        for (ggml_backend_dev_t dev : devs) {
-            std::string name = ggml_backend_dev_name(dev);
+        for (const llama_device & dev : devs) {
+            std::string name = ggml_backend_dev_name(dev.dev);
             name += " (";
-            name += ggml_backend_dev_description(dev);
+            name += ggml_backend_dev_description(dev.dev);
             name += ")";
             dev_names.push_back(name);
             max_length = std::max(max_length, name.length());
@@ -211,46 +228,59 @@ static void llama_params_fit_impl(
     std::vector<int64_t> projected_free_per_device;
     projected_free_per_device.reserve(nd);
 
-    if (nd > 1) {
-        LLAMA_LOG_INFO("%s: projected memory use with initial parameters [MiB]:\n", __func__);
-    }
-    for (size_t id = 0; id < nd; id++) {
-        const llama_device_memory_data & dmd = dmds_full[id];
-
-        const int64_t projected_used = dmd.mb.total();
-        const int64_t projected_free = dmd.free - projected_used;
-        projected_free_per_device.push_back(projected_free);
-
-        sum_free            += dmd.free;
-        sum_projected_used  += projected_used;
-        sum_projected_free  += projected_free;
-        sum_projected_model += dmd.mb.model;
-
-        if (nd > 1) {
-            LLAMA_LOG_INFO("%s:   - %s: %6" PRId64 " total, %6" PRId64 " used, %6" PRId64 " free vs. target of %6" PRId64 "\n",
-                __func__, dev_names[id].c_str(), dmd.total/MiB, projected_used/MiB, projected_free/MiB, margins[id]/MiB);
-        }
-    }
-    assert(sum_free >= 0 && sum_projected_used >= 0);
-    LLAMA_LOG_INFO("%s: projected to use %" PRId64 " MiB of device memory vs. %" PRId64 " MiB of free device memory\n",
-        __func__, sum_projected_used/MiB, sum_free/MiB);
-    if (nd == 1) {
-        if (projected_free_per_device[0] >= margins[0]) {
-            LLAMA_LOG_INFO("%s: will leave %" PRId64 " >= %" PRId64 " MiB of free device memory, no changes needed\n",
-                __func__, projected_free_per_device[0]/MiB, margins[0]/MiB);
+    if (nd == 0) {
+        sum_projected_used = dmds_full.back().mb.total();
+        sum_free           = dmds_full.back().total;
+        sum_projected_free = sum_free - sum_projected_used;
+        LLAMA_LOG_INFO("%s: projected to use %" PRId64 " MiB of host memory vs. %" PRId64 " MiB of total host memory\n",
+            __func__, sum_projected_used/MiB, sum_free/MiB);
+        if (sum_projected_free >= margins[0]) {
+            LLAMA_LOG_INFO("%s: will leave %" PRId64 " >= %" PRId64 " MiB of system memory, no changes needed\n",
+                __func__, sum_projected_free/MiB, margins[0]/MiB);
             return;
         }
     } else {
-        bool changes_needed = false;
+        if (nd > 1) {
+            LLAMA_LOG_INFO("%s: projected memory use with initial parameters [MiB]:\n", __func__);
+        }
         for (size_t id = 0; id < nd; id++) {
-            if (projected_free_per_device[id] < margins[id]) {
-                changes_needed = true;
-                break;
+            const llama_device_memory_data & dmd = dmds_full[id];
+
+            const int64_t projected_used = dmd.mb.total();
+            const int64_t projected_free = dmd.free - projected_used;
+            projected_free_per_device.push_back(projected_free);
+
+            sum_free            += dmd.free;
+            sum_projected_used  += projected_used;
+            sum_projected_free  += projected_free;
+            sum_projected_model += dmd.mb.model;
+
+            if (nd > 1) {
+                LLAMA_LOG_INFO("%s:   - %s: %6" PRId64 " total, %6" PRId64 " used, %6" PRId64 " free vs. target of %6" PRId64 "\n",
+                    __func__, dev_names[id].c_str(), dmd.total/MiB, projected_used/MiB, projected_free/MiB, margins[id]/MiB);
             }
         }
-        if (!changes_needed) {
-            LLAMA_LOG_INFO("%s: targets for free memory can be met on all devices, no changes needed\n", __func__);
-            return;
+        assert(sum_free >= 0 && sum_projected_used >= 0);
+        LLAMA_LOG_INFO("%s: projected to use %" PRId64 " MiB of device memory vs. %" PRId64 " MiB of free device memory\n",
+            __func__, sum_projected_used/MiB, sum_free/MiB);
+        if (nd == 1) {
+            if (projected_free_per_device[0] >= margins[0]) {
+                LLAMA_LOG_INFO("%s: will leave %" PRId64 " >= %" PRId64 " MiB of free device memory, no changes needed\n",
+                    __func__, projected_free_per_device[0]/MiB, margins[0]/MiB);
+                return;
+            }
+        } else {
+            bool changes_needed = false;
+            for (size_t id = 0; id < nd; id++) {
+                if (projected_free_per_device[id] < margins[id]) {
+                    changes_needed = true;
+                    break;
+                }
+            }
+            if (!changes_needed) {
+                LLAMA_LOG_INFO("%s: targets for free memory can be met on all devices, no changes needed\n", __func__);
+                return;
+            }
         }
     }
 
@@ -258,11 +288,15 @@ static void llama_params_fit_impl(
 
     {
         int64_t global_surplus = sum_projected_free;
-        for (size_t id = 0; id < nd; id++) {
-            global_surplus -= margins[id];
+        if (nd == 0) {
+            global_surplus -= margins[0];
+        } else {
+            for (size_t id = 0; id < nd; id++) {
+                global_surplus -= margins[id];
+            }
         }
         if (global_surplus < 0) {
-            if (nd == 1) {
+            if (nd <= 1) {
                 LLAMA_LOG_INFO("%s: cannot meet free memory target of %" PRId64 " MiB, need to reduce device memory by %" PRId64 " MiB\n",
                     __func__, margins[0]/MiB, -global_surplus/MiB);
             } else {
@@ -273,8 +307,12 @@ static void llama_params_fit_impl(
             if (cparams->n_ctx == 0) {
                 if (hp_nct > n_ctx_min) {
                     int64_t sum_used_target = sum_free;
-                    for (size_t id = 0; id < nd; id++) {
-                        sum_used_target -= margins[id];
+                    if (nd == 0) {
+                        sum_used_target -= margins[0];
+                    } else {
+                        for (size_t id = 0; id < nd; id++) {
+                            sum_used_target -= margins[id];
+                        }
                     }
                     if (nd > 1) {
                         // for multiple devices we need to be more conservative in terms of how much context we think can fit:
@@ -289,8 +327,12 @@ static void llama_params_fit_impl(
                     int64_t sum_projected_used_min_ctx = 0;
                     cparams->n_ctx = n_ctx_min;
                     const dmds_t dmds_min_ctx = llama_get_device_memory_data(path_model, mparams, cparams, devs, hp_ngl, hp_nct, hp_nex, log_level);
-                    for (const auto & dmd : dmds_min_ctx) {
-                        sum_projected_used_min_ctx += dmd.mb.total();
+                    if (nd == 0) {
+                        sum_projected_used_min_ctx = dmds_min_ctx.back().mb.total();
+                    } else {
+                        for (size_t id = 0; id < nd; id++) {
+                            sum_projected_used_min_ctx += dmds_min_ctx[id].mb.total();
+                        }
                     }
                     if (sum_used_target > sum_projected_used_min_ctx) {
                         // linear interpolation between minimum and maximum context size:
@@ -302,7 +344,7 @@ static void llama_params_fit_impl(
                         const int64_t memory_reduction = (hp_nct - cparams->n_ctx) * bytes_per_ctx;
                         LLAMA_LOG_INFO("%s: context size reduced from %" PRIu32 " to %" PRIu32 " -> need %" PRId64 " MiB less memory in total\n",
                             __func__, hp_nct, cparams->n_ctx, memory_reduction/MiB);
-                        if (nd == 1) {
+                        if (nd <= 1) {
                             LLAMA_LOG_INFO("%s: entire model can be fit by reducing context\n", __func__);
                             return;
                         }
@@ -324,6 +366,9 @@ static void llama_params_fit_impl(
                 LLAMA_LOG_INFO("%s: context size set by user to %" PRIu32 " -> no change\n", __func__, cparams->n_ctx);
             }
         }
+    }
+    if (nd == 0) {
+        throw llama_params_fit_exception("was unable to fit model into system memory by reducing context, abort");
     }
 
     if (mparams->n_gpu_layers != default_mparams.n_gpu_layers) {
@@ -472,8 +517,8 @@ static void llama_params_fit_impl(
 
         std::vector<int64_t> ret;
         ret.reserve(nd);
-        for (const llama_device_memory_data & dmd : dmd_nl) {
-            ret.push_back(dmd.mb.total());
+        for (size_t id = 0; id < nd; id++) {
+            ret.push_back(dmd_nl[id].mb.total());
         }
         return ret;
     };
@@ -685,7 +730,7 @@ static void llama_params_fit_impl(
             ngl_per_device_test[id].overflow_type = LAYER_FRACTION_UP;
             std::vector<ggml_backend_buffer_type_t> overflow_bufts_test = overflow_bufts;
             if (id < nd - 1) {
-                overflow_bufts_test[id] = ggml_backend_dev_buffer_type(devs[id + 1]);
+                overflow_bufts_test[id] = ggml_backend_dev_buffer_type(devs[id + 1].dev);
             }
             LLAMA_LOG_DEBUG("%s: trying to fit one extra layer with overflow_type=LAYER_FRACTION_UP\n", __func__);
             std::vector<int64_t> mem_test = get_memory_for_layers(__func__, ngl_per_device_test, overflow_bufts_test);
@@ -935,58 +980,111 @@ static struct llama_model * llama_model_load_from_file_impl(
 
     // create list of devices to use with this model
     if (params.devices) {
-        for (ggml_backend_dev_t * dev = params.devices; *dev; ++dev) {
-            model->devices.push_back(*dev);
+        if (params.split_mode == LLAMA_SPLIT_MODE_TENSOR) {
+            size_t n_devs = 0;
+            while (params.devices[n_devs]) {
+                n_devs++;
+            }
+            if (n_devs == 0) {
+                LLAMA_LOG_ERROR("%s: LLAMA_SPLIT_MODE_TENSOR needs >= 1 devices\n", __func__);
+                return nullptr;
+            }
+            LLAMA_LOG_INFO("%s: creating a Meta device with %zu devices\n", __func__, n_devs);
+            for (size_t i = 0; i < n_devs; ++i) {
+                LLAMA_LOG_INFO("%s: - device %zu: %s\n", __func__, i, ggml_backend_dev_name(params.devices[i]));
+            }
+            model->get_split_state_ud.n_devices = n_devs;
+            model->get_split_state_ud.model = model;
+            model->devices.push_back({
+                true, ggml_backend_meta_device(
+                params.devices, n_devs, llama_meta_device_get_split_state, &model->get_split_state_ud)
+            });
+        } else {
+            for (ggml_backend_dev_t * dev = params.devices; *dev; ++dev) {
+                model->devices.push_back({false, *dev});
+            }
         }
     } else {
         // default device selection
 
         // build list of available devices
-        std::vector<ggml_backend_dev_t> gpus;
-        std::vector<ggml_backend_dev_t> igpus;
-        std::vector<ggml_backend_dev_t> rpc_servers;
+        std::vector<llama_device> gpus;
+        std::vector<llama_device> igpus;
+        std::vector<llama_device> rpc_servers;
 
-        for (size_t i = 0; i < ggml_backend_dev_count(); ++i) {
-            ggml_backend_dev_t dev = ggml_backend_dev_get(i);
-            switch (ggml_backend_dev_type(dev)) {
-                case GGML_BACKEND_DEVICE_TYPE_CPU:
-                case GGML_BACKEND_DEVICE_TYPE_ACCEL:
-                    // skip CPU backends since they are handled separately
-                    break;
-
-                case GGML_BACKEND_DEVICE_TYPE_GPU: {
-                    ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
-                    if (ggml_backend_reg_name(reg) == std::string("RPC")) {
-                        rpc_servers.push_back(dev);
-                    } else {
-                        // check if there is already a GPU with the same device id
-                        ggml_backend_dev_props props;
-                        ggml_backend_dev_get_props(dev, &props);
-                        auto it = std::find_if(gpus.begin(), gpus.end(), [&props](ggml_backend_dev_t d) {
-                            ggml_backend_dev_props d_props;
-                            ggml_backend_dev_get_props(d, &d_props);
-                            if (props.device_id && d_props.device_id) {
-                                return strcmp(props.device_id, d_props.device_id) == 0;
-                            }
-                            return false;
-                        });
-
-                        if (it != gpus.end()) {
-                            LLAMA_LOG_INFO("%s: skipping device %s (%s) with id %s - already using device %s (%s) with the same id\n",
-                                    __func__,
-                                    ggml_backend_dev_name(dev), ggml_backend_dev_description(dev),
-                                    props.device_id ? props.device_id : "unknown id",
-                                    ggml_backend_dev_name(*it), ggml_backend_dev_description(*it));
-                        } else {
-                            gpus.push_back(dev);
-                        }
-                    }
-                    break;
+        if (params.split_mode == LLAMA_SPLIT_MODE_TENSOR) {
+            std::vector<ggml_backend_dev_t> devs;
+            devs.reserve(ggml_backend_dev_count());
+            for (size_t i = 0; i < ggml_backend_dev_count(); ++i) {
+                auto * dev = ggml_backend_dev_get(i);
+                if (ggml_backend_dev_buffer_type(dev) == ggml_backend_cpu_buffer_type()) {
+                    LLAMA_LOG_INFO("%s: skipping %s (%s) for tensor parallelism\n", __func__, ggml_backend_dev_name(dev), ggml_backend_dev_description(dev));
+                    continue;
                 }
+                devs.push_back(dev);
+            }
+            if (devs.empty()) {
+                LLAMA_LOG_ERROR("%s: LLAMA_SPLIT_MODE_TENSOR needs >= 1 devices\n", __func__);
+                return nullptr;
+            }
 
-                case GGML_BACKEND_DEVICE_TYPE_IGPU:
-                    igpus.push_back(dev);
-                    break;
+            LLAMA_LOG_INFO("%s: creating a Meta device for tensor parallelism from %zu devices:\n", __func__, devs.size());
+            for (size_t i = 0; i < devs.size(); ++i) {
+                LLAMA_LOG_INFO("%s: - device %zu: %s (%s)\n", __func__, i, ggml_backend_dev_name(devs[i]), ggml_backend_dev_description(devs[i]));
+            }
+
+            GGML_ASSERT(!devs.empty());
+            model->get_split_state_ud.n_devices = devs.size();
+            model->get_split_state_ud.model     = model;
+            gpus.push_back({
+                true, ggml_backend_meta_device(
+                devs.data(), devs.size(), llama_meta_device_get_split_state, &model->get_split_state_ud)
+            });
+        } else {
+            for (size_t i = 0; i < ggml_backend_dev_count(); ++i) {
+                ggml_backend_dev_t dev = ggml_backend_dev_get(i);
+                switch (ggml_backend_dev_type(dev)) {
+                    case GGML_BACKEND_DEVICE_TYPE_CPU:
+                    case GGML_BACKEND_DEVICE_TYPE_ACCEL:
+                        // skip CPU backends since they are handled separately
+                        break;
+
+                    case GGML_BACKEND_DEVICE_TYPE_GPU: {
+                        ggml_backend_reg_t reg = ggml_backend_dev_backend_reg(dev);
+                        if (ggml_backend_reg_name(reg) == std::string("RPC")) {
+                            rpc_servers.push_back({false, dev});
+                        } else {
+                            // check if there is already a GPU with the same device id
+                            ggml_backend_dev_props props;
+                            ggml_backend_dev_get_props(dev, &props);
+                            auto it = std::find_if(gpus.begin(), gpus.end(), [&props](const llama_device & d) {
+                                ggml_backend_dev_props d_props;
+                                ggml_backend_dev_get_props(d.dev, &d_props);
+                                if (props.device_id && d_props.device_id) {
+                                    return strcmp(props.device_id, d_props.device_id) == 0;
+                                }
+                                return false;
+                            });
+
+                            if (it != gpus.end()) {
+                                LLAMA_LOG_INFO("%s: skipping device %s (%s) with id %s - already using device %s (%s) with the same id\n",
+                                        __func__,
+                                        ggml_backend_dev_name(dev), ggml_backend_dev_description(dev),
+                                        props.device_id ? props.device_id : "unknown id",
+                                        ggml_backend_dev_name(it->dev), ggml_backend_dev_description(it->dev));
+                            } else {
+                                gpus.push_back({false, dev});
+                            }
+                        }
+                        break;
+                    }
+
+                    case GGML_BACKEND_DEVICE_TYPE_IGPU:
+                        igpus.push_back({false, dev});
+                        break;
+                    case GGML_BACKEND_DEVICE_TYPE_META:
+                        GGML_ABORT("fatal error");
+                }
             }
         }
 
@@ -1012,17 +1110,17 @@ static struct llama_model * llama_model_load_from_file_impl(
                 llama_model_free(model);
                 return nullptr;
             }
-            ggml_backend_dev_t main_gpu = model->devices[params.main_gpu];
+            llama_device main_gpu = model->devices[params.main_gpu];
             model->devices.clear();
             model->devices.push_back(main_gpu);
         }
     }
 
-    for (auto * dev : model->devices) {
+    for (const auto & dev : model->devices) {
         ggml_backend_dev_props props;
-        ggml_backend_dev_get_props(dev, &props);
+        ggml_backend_dev_get_props(dev.dev, &props);
         LLAMA_LOG_INFO("%s: using device %s (%s) (%s) - %zu MiB free\n", __func__,
-                ggml_backend_dev_name(dev), ggml_backend_dev_description(dev),
+                ggml_backend_dev_name(dev.dev), ggml_backend_dev_description(dev.dev),
                 props.device_id ? props.device_id : "unknown id",
                 props.memory_free/1024/1024);
     }
