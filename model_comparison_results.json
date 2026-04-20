@@ -1,0 +1,84 @@
+{
+  "gguf_path": "/Users/fred/.ollama/models/blobs/sha256-c04e57114409a84843ed37427be24ea278d5f74f35790734b9bd5554f237210a",
+  "hf_path": "models/qwen3.5-abliterated-0.8B-hf",
+  "ollama_model": "huihui_ai/qwen3.5-abliterated:0.8B",
+  "benchmark": {
+    "benchmark": "mmlu",
+    "accuracy": 100.0,
+    "correct": 7,
+    "answered": 7,
+    "total": 10,
+    "results": [
+      {
+        "question": "What is the capital of France? A. London B. Paris ",
+        "expected": "B",
+        "predicted": "B",
+        "correct": true,
+        "raw_output": "Thinking...\nThinking Process:\n\n1.  **Analyze the Request:** The user is asking for the capital of France and wants only the letter of the correct answ"
+      },
+      {
+        "question": "Which planet is known as the Red Planet? A. Venus ",
+        "expected": "B",
+        "predicted": "B",
+        "correct": true,
+        "raw_output": "Thinking...\nThinking Process:\n\n1.  **Analyze the Request:** The user is asking for the name of the planet known as the \"Red Planet\" and wants the corr"
+      },
+      {
+        "question": "What is the chemical symbol for gold? A. Go B. Gd ",
+        "expected": "C",
+        "predicted": "C",
+        "correct": true,
+        "raw_output": "Thinking...\nThinking Process:\n\n1.  **Analyze the Request:** The user is asking for the chemical symbol for gold and wants the answer to be a specific "
+      },
+      {
+        "question": "In Python, which keyword is used to define a funct",
+        "expected": "B",
+        "predicted": "B",
+        "correct": true,
+        "raw_output": "Thinking...\nThe question asks which Python keyword is used to define a function.\n\nThe correct answer is `def` - it stands for \"definite function\" or i"
+      },
+      {
+        "question": "What is the square root of 144? A. 10 B. 11 C. 12 ",
+        "expected": "C",
+        "predicted": "",
+        "correct": false,
+        "error": "timeout"
+      },
+      {
+        "question": "Which data structure uses FIFO? A. Stack B. Queue ",
+        "expected": "B",
+        "predicted": "B",
+        "correct": true,
+        "raw_output": "Thinking...\nThe user is asking a multiple-choice question about data structures and which one uses First-In-First-Out (FIFO) behavior.\n\nLet's analyze "
+      },
+      {
+        "question": "What is the largest ocean on Earth? A. Atlantic B.",
+        "expected": "D",
+        "predicted": "",
+        "correct": false,
+        "error": "timeout"
+      },
+      {
+        "question": "Who wrote Romeo and Juliet? A. Charles Dickens B. ",
+        "expected": "B",
+        "predicted": "B",
+        "correct": true,
+        "raw_output": "Thinking...\nThinking Process:\n\n1.  **Analyze the Request:**\n    *   Question: Who wrote *Romeo and Juliet*?\n    *   Options: A. Charles Dickens, B. Wi"
+      },
+      {
+        "question": "What is the binary representation of decimal 10? A",
+        "expected": "A",
+        "predicted": "",
+        "correct": false,
+        "error": "timeout"
+      },
+      {
+        "question": "Which is NOT a programming language? A. Python B. ",
+        "expected": "C",
+        "predicted": "C",
+        "correct": true,
+        "raw_output": "Thinking...\nThe user is asking to identify which option is NOT a programming language from a given list.\n\n1.  **Analyze Option A (Python):** A well-kn"
+      }
+    ]
+  }
+}
